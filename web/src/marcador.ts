@@ -165,9 +165,21 @@ function pintarParciales(v: Vista) {
 }
 
 function pintarHistorial(v: Vista) {
-  $('#lista-historial').replaceChildren(...v.historial.toReversed().map((h) => {
+  const lista = $('#lista-historial');
+  if (v.historial.length === 0) return lista.replaceChildren(el('li', { class: 'vacio' }, 'Todavía no hay jugadas.'));
+
+  // Del más reciente al más antiguo, con una cabecera al empezar cada set.
+  const filas: HTMLElement[] = [];
+  let setAnterior: number | null = null;
+  for (const h of v.historial.toReversed()) {
+    if (h.set !== setAnterior) {
+      setAnterior = h.set;
+      const parcial = v.parciales[h.set - 1];
+      filas.push(el('li', { class: 'separador-set' },
+        el('span', {}, parcial ? `Set ${h.set} · ${parcial.local}-${parcial.visitante}` : `Set ${h.set}`),
+      ));
+    }
     const item = el('li', {},
-      el('span', { class: 'set' }, `Set ${h.set}`),
       el('span', { class: 'descripcion' }, h.descripcion),
       el('span', { class: 'marcador-parcial' }, `${h.puntos.local}-${h.puntos.visitante} (${h.sets.local}-${h.sets.visitante})`),
       el('time', { datetime: h.en }, hora.format(new Date(h.en))),
@@ -179,9 +191,9 @@ function pintarHistorial(v: Vista) {
       item.style.setProperty('--texto', textoDe(v, h.equipo));
     }
     if (h.cierre) item.classList.add('cierre');
-    return item;
-  }));
-  if (v.historial.length === 0) $('#lista-historial').replaceChildren(el('li', { class: 'vacio' }, 'Todavía no hay jugadas.'));
+    filas.push(item);
+  }
+  lista.replaceChildren(...filas);
 }
 
 function pintarReloj() {
