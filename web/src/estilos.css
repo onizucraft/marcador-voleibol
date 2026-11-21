@@ -218,8 +218,10 @@ body:not(.es-admin) .controles { grid-template-columns: repeat(2, auto); }
   font-size: clamp(1rem, 1.8vw, 1.3rem); background: var(--superficie); padding: 0.75rem 1rem; border-radius: var(--radio);
 }
 .parciales { display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; }
-.parciales li { display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0.9rem; border-radius: 2rem; background: var(--superficie); }
-.parciales li::before { content: ''; width: 0.7rem; height: 0.7rem; border-radius: 50%; background: var(--color); }
+.parciales li {
+  display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.9rem; border-radius: 2rem;
+  background: var(--color); color: var(--texto, #fff); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.15);
+}
 
 .historial { max-width: 50rem; margin: 0 auto; padding: 0 1.25rem 3rem; }
 .historial h2 { font-size: 1.1rem; color: var(--texto-suave); margin-bottom: 0.75rem; }
@@ -254,6 +256,24 @@ body:not(.es-admin) .controles { grid-template-columns: repeat(2, auto); }
   .historial .set, .historial time { display: none; }
 }
 
+/* ---------- Panel del admin: puntos arriba, −1 y +2 grandes como pie ---------- */
+/* El público no tiene estos botones y ve el panel como siempre. */
+
+body.es-admin .panel {
+  grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto;
+  place-items: stretch; overflow: hidden;
+}
+body.es-admin .panel .puntos { grid-column: 1 / -1; display: grid; place-items: center; font-size: 34cqi; }
+body.es-admin .panel :is(.menos-uno, .mas-dos) {
+  position: static; border: none; border-radius: 0; padding: 0.45em 0;
+  font-size: max(1.4rem, 10cqi); line-height: 1;
+  background: rgb(0 0 0 / 0.2); border-top: 2px solid rgb(255 255 255 / 0.18);
+}
+body.es-admin .panel .menos-uno { border-right: 1px solid rgb(255 255 255 / 0.18); }
+body.es-admin .panel .mas-dos { border-left: 1px solid rgb(255 255 255 / 0.18); }
+body.es-admin .panel :is(.menos-uno, .mas-dos):not(:disabled):hover { background: rgb(0 0 0 / 0.3); }
+body.es-admin .panel :is(.menos-uno, .mas-dos):not(:disabled):active { background: rgb(0 0 0 / 0.4); }
+
 /* ---------- Pantalla completa: solo marcador, sets y tiempo ---------- */
 
 body.presentacion { overflow: hidden; }
@@ -269,6 +289,7 @@ body.presentacion .marcador {
 }
 body.presentacion .panel { aspect-ratio: auto; container-type: size; }
 body.presentacion .panel .puntos { font-size: min(62cqh, 40cqw); }
+body.presentacion .panel { grid-template-rows: minmax(0, 1fr); }
 body.presentacion .marcador .nombre { font-size: clamp(1.5rem, 6vh, 4.5rem); }
 body.presentacion .reloj { font-size: clamp(1.5rem, 7vh, 5rem); cursor: default; }
 body.presentacion .centro { align-self: center; }

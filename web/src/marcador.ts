@@ -140,7 +140,10 @@ function pintarEstado(v: Vista) {
 function pintarParciales(v: Vista) {
   $('#parciales').replaceChildren(...v.parciales.map((p, i) => {
     const item = el('li', {}, `Set ${i + 1}: `, el('strong', {}, `${p.local}-${p.visitante}`));
-    item.style.setProperty('--color', v.equipos[p.ganador].tinta);
+    // Cada set, con el color del equipo que lo ganó.
+    item.style.setProperty('--color', v.equipos[p.ganador].hex);
+    item.style.setProperty('--texto', v.equipos[p.ganador].texto);
+    item.title = `Lo ganó ${nombreDe(p.ganador)}`;
     return item;
   }));
 }
