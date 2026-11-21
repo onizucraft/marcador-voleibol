@@ -24,6 +24,9 @@ let dialogoPendiente: { clave: number; cerrar: () => void } | null = null;
 let cola: Promise<unknown> = Promise.resolve();
 
 const nombreDe = (lado: Lado) => vista!.equipos[lado].nombre;
+// Las vistas guardadas antes de existir `tinta`/`texto` no los traen: se usa el color principal.
+const tintaDe = (v: Vista, lado: Lado) => v.equipos[lado].tinta ?? v.equipos[lado].hex;
+const textoDe = (v: Vista, lado: Lado) => v.equipos[lado].texto ?? '#ffffff';
 const dosCifras = (n: number) => String(n).padStart(2, '0');
 const hora = new Intl.DateTimeFormat('es-ES', { timeStyle: 'medium' });
 const fechaPrevista = new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -42,12 +45,12 @@ function pintar(version: number, nueva: Vista, nuevoReloj: Reloj, nuevaProgramac
     const equipo = v.equipos[lado];
     const nombre = $(`#nombre-${posicion}`);
     nombre.textContent = equipo.nombre;
-    nombre.style.setProperty('--color', equipo.tinta);
+    nombre.style.setProperty('--color', tintaDe(v, lado));
 
     const panel = $(`#panel-${posicion}`);
     panel.dataset.lado = lado;
     panel.style.setProperty('--color', equipo.hex);
-    panel.style.setProperty('--texto', equipo.texto);
+    panel.style.setProperty('--texto', textoDe(v, lado));
     panel.classList.toggle('bloqueado', bloqueado);
     panel.setAttribute('aria-label', `Sumar punto a ${equipo.nombre}`);
     panel.querySelector('.lado-etiqueta')!.textContent = lado === 'local' ? 'Local' : 'Visitante';
@@ -58,7 +61,7 @@ function pintar(version: number, nueva: Vista, nuevoReloj: Reloj, nuevaProgramac
     const sets = $(`#sets-${posicion}`);
     sets.textContent = String(v.sets[lado]);
     sets.style.setProperty('--color', equipo.hex);
-    sets.style.setProperty('--texto', equipo.texto);
+    sets.style.setProperty('--texto', textoDe(v, lado));
   }
 
   const { config } = v;
@@ -140,9 +143,8 @@ function pintarEstado(v: Vista) {
 function pintarParciales(v: Vista) {
   $('#parciales').replaceChildren(...v.parciales.map((p, i) => {
     const item = el('li', {}, `Set ${i + 1}: `, el('strong', {}, `${p.local}-${p.visitante}`));
-    // Cada set, con el color del equipo que lo ganó.
-    item.style.setProperty('--color', v.equipos[p.ganador].hex);
-    item.style.setProperty('--texto', v.equipos[p.ganador].texto);
+    // Borde con el color del equipo que ganó el set.
+    item.style.setProperty('--color', tintaDe(v, p.ganador));
     item.title = `Lo ganó ${nombreDe(p.ganador)}`;
     return item;
   }));
@@ -156,7 +158,7 @@ function pintarHistorial(v: Vista) {
       el('span', { class: 'marcador-parcial' }, `${h.puntos.local}-${h.puntos.visitante} (${h.sets.local}-${h.sets.visitante})`),
       el('time', { datetime: h.en }, hora.format(new Date(h.en))),
     );
-    if (h.equipo) item.style.setProperty('--color', v.equipos[h.equipo].tinta);
+    if (h.equipo) item.style.setProperty('--color', tintaDe(v, h.equipo));
     return item;
   }));
   if (v.historial.length === 0) $('#lista-historial').replaceChildren(el('li', { class: 'vacio' }, 'Todavía no hay jugadas.'));

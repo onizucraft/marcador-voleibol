@@ -303,7 +303,8 @@ function construirVista(config: Config, guardados: Equipos, aplicados: Evento[],
     historial.push({
       descripcion: describir(evento, anterior, equipos),
       tipo: evento.tipo,
-      equipo: evento.equipo ?? null,
+      // Los cierres de set/partido se atribuyen al ganador (para colorearlos).
+      equipo: evento.equipo ?? (evento.tipo === 'confirmar' ? anterior.pendiente!.ganador : null),
       set: numeroDeSet(anterior.sets),
       puntos: { ...estado.puntos },
       sets: { ...estado.sets },

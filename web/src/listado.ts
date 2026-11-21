@@ -32,7 +32,7 @@ function tarjeta(p: FilaPartido) {
     fila.style.setProperty('--color', p.equipos[lado].hex);
     return fila;
   };
-  return el('a', { class: 'tarjeta partido', href: `partido.html?id=${p.id}` },
+  const enlace = el('a', { class: `tarjeta partido${p.ganador ? ' con-ganador' : ''}`, href: `partido.html?id=${p.id}` },
     el('div', { class: 'meta' },
       el('time', { datetime: fechaDe(p), title: p.comenzado_en ? 'Comienzo' : 'Fecha y hora previstas' }, formatoFecha.format(new Date(fechaDe(p)))),
       el('span', { class: `etiqueta-estado ${p.estado}` }, ETIQUETAS[p.estado]),
@@ -40,6 +40,9 @@ function tarjeta(p: FilaPartido) {
     equipo('local', p.sets_local),
     equipo('visitante', p.sets_visitante),
   );
+  // Partidos terminados: borde con el color del ganador.
+  if (p.ganador) enlace.style.setProperty('--ganador', p.equipos[p.ganador].tinta ?? p.equipos[p.ganador].hex);
+  return enlace;
 }
 
 function pintarLista(contenedor: HTMLElement, partidos: FilaPartido[], vacio: string) {

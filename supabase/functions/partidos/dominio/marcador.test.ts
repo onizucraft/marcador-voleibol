@@ -275,3 +275,9 @@ test('estado del listado: programado, en juego o finalizado', () => {
   const fin = jugar(nuevoPartido({ setsParaGanar: 1, puntosPorSet: 2, diferenciaDos: false }), ...puntos('local', 2), { tipo: 'confirmar' });
   assert.equal(resumir(fin.vista, AHORA).estado, 'finalizado');
 });
+
+test('el cierre de un set se atribuye al ganador en el historial', () => {
+  const { vista } = jugar(nuevoPartido(), ...puntos('visitante', 25), { tipo: 'confirmar' }, { tipo: 'cambio_lado' });
+  assert.equal(vista.historial.at(-2)!.equipo, 'visitante');
+  assert.equal(vista.historial.at(-1)!.equipo, null);
+});

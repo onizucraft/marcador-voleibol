@@ -88,6 +88,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 .lista-partidos { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
 .partido { display: grid; gap: 0.4rem; text-decoration: none; transition: background 0.15s; }
 .partido:hover { background: var(--superficie-2); }
+.partido.con-ganador { border: 3px solid var(--ganador); }
 .partido .meta { display: flex; justify-content: space-between; color: var(--texto-suave); font-size: 0.85rem; }
 .partido .equipo { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.6rem; font-size: 1.05rem; }
 .partido .equipo.ganador { font-weight: 700; }
@@ -219,8 +220,8 @@ body:not(.es-admin) .controles { grid-template-columns: repeat(2, auto); }
 }
 .parciales { display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; }
 .parciales li {
-  display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.9rem; border-radius: 2rem;
-  background: var(--color); color: var(--texto, #fff); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.15);
+  display: flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.85rem; border-radius: 2rem;
+  background: var(--superficie); border: 3px solid var(--color);
 }
 
 .historial { max-width: 50rem; margin: 0 auto; padding: 0 1.25rem 3rem; }
@@ -228,10 +229,10 @@ body:not(.es-admin) .controles { grid-template-columns: repeat(2, auto); }
 .historial ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
 .historial li {
   display: grid; grid-template-columns: 4rem 1fr auto auto; gap: 1rem; align-items: center;
-  padding: 0.45rem 0.75rem; border-radius: 0.5rem; background: var(--superficie);
-  border-left: 0.35rem solid var(--color, #555); font-size: 0.95rem;
+  padding: 0.4rem 0.7rem; border-radius: 0.5rem; background: var(--superficie);
+  border: 3px solid var(--color, #444); font-size: 0.95rem;
 }
-.historial li.vacio { display: block; border-left: none; }
+.historial li.vacio { display: block; border: none; }
 .historial .set, .historial time { color: var(--texto-suave); font-size: 0.85rem; }
 .historial .marcador-parcial { font-variant-numeric: tabular-nums; }
 
