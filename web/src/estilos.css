@@ -87,12 +87,13 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 .lista-partidos { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
 .partido { display: grid; gap: 0.4rem; text-decoration: none; transition: background 0.15s; }
 .partido:hover { background: var(--superficie-2); }
-.partido.con-ganador { border: 3px solid var(--ganador); }
 .partido .meta { display: flex; justify-content: space-between; color: var(--texto-suave); font-size: 0.85rem; }
-.partido .equipo { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.6rem; font-size: 1.05rem; }
+.partido .equipo {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0.6rem; font-size: 1.05rem;
+  background: var(--color); color: var(--texto, #fff); padding: 0.3rem 0.7rem; border-radius: 0.5rem;
+}
 .partido .equipo.ganador { font-weight: 700; }
-.partido .muestra { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--color); box-shadow: 0 0 0 1px rgb(255 255 255 / 0.35); }
-.partido .equipo-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.partido .equipo-nombre { overflow-wrap: anywhere; }
 .partido .sets { font-variant-numeric: tabular-nums; font-weight: 700; }
 .etiqueta-estado { font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 1rem; background: var(--superficie-2); }
 .etiqueta-estado.en_juego { background: #2e7d32; color: #fff; }
@@ -141,21 +142,22 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 #panel-der { grid-area: panel-der; }
 .zona-reloj { grid-area: reloj; }
 .centro { grid-area: centro; }
+.estado.coloreado { background: var(--color); color: var(--texto, #fff); font-weight: 600; }
 .estado { grid-area: estado; }
 .resumen { grid-area: resumen; }
 .parciales { grid-area: parciales; }
 
-.cabecera-equipo { display: flex; align-items: center; justify-content: center; gap: 0.25rem; min-width: 0; }
-.cabecera-equipo .editar-equipo { font-size: 1.2rem; flex: none; }
+.cabecera-equipo { display: flex; min-width: 0; align-self: stretch; }
 .dialogo .formulario { display: grid; gap: 1rem; }
 .dialogo input[name='nombre'] {
   font: inherit; padding: 0.55rem 0.7rem; border-radius: 0.5rem; border: 1px solid #555;
   background: var(--fondo); color: var(--texto);
 }
 .marcador .nombre {
-  background: var(--color); color: var(--texto, #fff); padding: 0.05em 0.6em; border-radius: 0.6rem;
-  max-width: 100%; font-size: clamp(1.25rem, 3vw, 2.25rem); font-weight: 500; text-align: center;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  background: var(--color); color: var(--texto, #fff); padding: 0.15em 0.5em; border-radius: 0.6rem;
+  width: 100%; display: flex; align-items: center; justify-content: center; line-height: 1.15;
+  white-space: normal; overflow-wrap: anywhere; text-wrap: balance;
+  font-size: clamp(1.15rem, 2.6vw, 2rem); font-weight: 500; text-align: center;
 }
 
 .reloj, .puntos, .caja-set {
@@ -216,14 +218,15 @@ body:not(.es-admin) .controles { grid-template-columns: repeat(2, auto); }
 .control:hover:not(:disabled) { background: var(--superficie-2); color: #fff; }
 .control:disabled { opacity: 0.3; cursor: default; }
 
+.estado.coloreado { background: var(--color); color: var(--texto, #fff); font-weight: 600; }
 .estado {
   display: flex; justify-content: center; align-items: center; gap: 1rem; flex-wrap: wrap;
   font-size: clamp(1rem, 1.8vw, 1.3rem); background: var(--superficie); padding: 0.75rem 1rem; border-radius: var(--radio);
 }
 .parciales { display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; }
 .parciales li {
-  display: flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.85rem; border-radius: 2rem;
-  background: var(--superficie); border: 3px solid var(--color);
+  display: flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.9rem; border-radius: 2rem;
+  background: var(--color); color: var(--texto, #fff);
 }
 
 .historial { max-width: 50rem; margin: 0 auto; padding: 0 1.25rem 3rem; }
@@ -231,12 +234,12 @@ body:not(.es-admin) .controles { grid-template-columns: repeat(2, auto); }
 .historial ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
 .historial li {
   display: grid; grid-template-columns: 4rem 1fr auto auto; gap: 1rem; align-items: center;
-  padding: 0.4rem 0.7rem; border-radius: 0.5rem; background: var(--superficie);
-  border: 3px solid var(--color, #444); font-size: 0.95rem;
+  padding: 0.45rem 0.75rem; border-radius: 0.5rem; background: var(--superficie); font-size: 0.95rem;
 }
 .historial li.vacio { display: block; border: none; }
-.historial li.cierre { background: var(--color); color: var(--texto, #fff); font-weight: 600; }
-.historial li.cierre :is(.set, time) { color: inherit; opacity: 0.85; }
+.historial li.de-equipo { background: var(--color); color: var(--texto, #fff); }
+.historial li.de-equipo :is(.set, time) { color: inherit; }
+.historial li.cierre { font-weight: 700; box-shadow: inset 0 0 0 3px var(--texto, #fff); }
 .historial .set, .historial time { color: var(--texto-suave); font-size: 0.85rem; }
 .historial .marcador-parcial { font-variant-numeric: tabular-nums; }
 
@@ -297,7 +300,7 @@ body.presentacion .panel { aspect-ratio: auto; container-type: size; }
 body.presentacion .panel .puntos { font-size: min(62cqh, 40cqw); }
 body.presentacion.es-admin .panel .puntos { font-size: min(46cqh, 36cqw); }
 body.presentacion.es-admin .panel :is(.menos-uno, .mas-dos) { font-size: max(1.3rem, min(9cqh, 7cqw)); padding: 0.5em 0; min-height: 2.75rem; }
-body.presentacion .marcador .nombre { font-size: clamp(1.5rem, 6vh, 4.5rem); }
+body.presentacion .marcador .nombre { font-size: clamp(1.5rem, 6vh, 4.5rem); cursor: default; }
 body.presentacion .reloj { font-size: clamp(1.5rem, 7vh, 5rem); cursor: default; }
 body.presentacion .centro { align-self: center; }
 body.presentacion .caja-set { width: clamp(4rem, 14vh, 10rem); font-size: clamp(2rem, 9vh, 6rem); }
@@ -316,3 +319,5 @@ body.presentacion .caja-set { width: clamp(4rem, 14vh, 10rem); font-size: clamp(
   body.presentacion .marcador .nombre { font-size: min(6.5vw, 5vh); }
   body.presentacion .caja-set { width: clamp(3.5rem, 9vh, 7rem); font-size: clamp(2rem, 6vh, 4rem); }
 }
+
+body.es-admin:not(.presentacion) .marcador .nombre { cursor: pointer; }

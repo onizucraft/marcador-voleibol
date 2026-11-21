@@ -67,6 +67,14 @@ No uses `supabase config push`: subiría también los valores por defecto de des
 
 El usuario administrador se crea en el panel: Authentication → Users → Add user.
 
+Tras un cambio en el formato de la vista o en la paleta, los partidos ya guardados se
+actualizan recalculando su vista (no toca eventos, puntos ni reloj). Necesita la clave
+secreta del proyecto (`sb_secret_…`, Project Settings → API Keys):
+
+```bash
+curl -X POST -H "apikey: <clave secreta>" https://xagqwfzokhmetoblbxlb.supabase.co/functions/v1/partidos/recalcular
+```
+
 **Front** (GitHub Pages, https://onizucraft.github.io/marcador-voleibol/): lo publica
 `.github/workflows/web.yml` al hacer push a la rama por defecto, con la URL y la publishable
 key de `.env.production` (públicas por diseño). Pages tiene que estar en *Source: GitHub Actions*.

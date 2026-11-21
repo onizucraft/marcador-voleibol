@@ -292,7 +292,10 @@ export interface Vista {
 function conPaleta(equipos: Equipos): Equipos {
   const con = (e: Equipo): Equipo => {
     const c = COLORES.find((color) => color.id === e.color);
-    return c ? { nombre: e.nombre, color: e.color, hex: c.hex, texto: c.texto } : { nombre: e.nombre, color: e.color, hex: e.hex, texto: e.texto ?? '#ffffff' };
+    // Colores retirados de la paleta: se respetan, con el texto que se lea sobre ellos.
+    return c
+      ? { nombre: e.nombre, color: e.color, hex: c.hex, texto: c.texto }
+      : { nombre: e.nombre, color: e.color, hex: e.hex, texto: textoLegible(e.hex) };
   };
   return { local: con(equipos.local), visitante: con(equipos.visitante) };
 }
@@ -312,7 +315,7 @@ function construirVista(config: Config, guardados: Equipos, aplicados: Evento[],
       punto.cierre = tipo;
       punto.sets = { ...estado.sets };
       punto.descripcion += tipo === 'partido'
-        ? ` · ${equipos[ganador].nombre} gana el partido ${estado.sets[ganador]}-${estado.sets[otro(ganador)]}`
+        ? ` · ${equipos[ganador].nombre} gana el partido ${estado.sets.local}-${estado.sets.visitante}`
         : ` · ${equipos[ganador].nombre} gana el set ${numeroDeSet(anterior.sets)} · cambio de lado`;
       continue;
     }
@@ -352,6 +355,29 @@ function construirVista(config: Config, guardados: Equipos, aplicados: Evento[],
 
 export function vistaInicial(config: Config, equipos: Equipos): Vista {
   return construirVista(config, equipos, [], 0);
+}
+
+/** Vuelve a calcular la vista de un partido guardado con las reglas y la paleta actuales. */
+export function recalcularVista(partido: PartidoGuardado): Vista {
+  const { config, equipos, cursor, eventos } = partido;
+  return construirVista(config, equipos, eventos.slice(0, cursor), eventos.length);
+}
+
+/** Contraste WCAG 2.x entre dos colores #rrggbb. */
+export function contrasteWcag(a: string, b: string): number {
+  const luminancia = (hex: string) => {
+    const [r, g, bl] = [1, 3, 5]
+      .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+      .map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+  };
+  const [claro, oscuro] = [luminancia(a), luminancia(b)].sort((x, y) => y - x);
+  return (claro + 0.05) / (oscuro + 0.05);
+}
+
+/** Blanco si cumple 4,5:1 sobre `fondo` (WCAG 1.4.3); si no, casi negro. */
+export function textoLegible(fondo: string): string {
+  return contrasteWcag(fondo, '#ffffff') >= 4.5 ? '#ffffff' : '#1a1a1a';
 }
 
 /** Partido tal y como está guardado: `eventos` incluye los deshechos (seq > cursor). */

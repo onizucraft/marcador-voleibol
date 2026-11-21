@@ -5,6 +5,7 @@
 //   POST /partidos                   admin     crear partido
 //   POST /partidos/:id/acciones      admin     punto, +2, confirmar, cambio de lado, restablecer, deshacer, rehacer,
 //                                              reloj (iniciar/pausar) y editar equipo
+//   POST /partidos/recalcular        servicio  recalcula la vista guardada de todos los partidos
 //
 // Las lecturas del público no pasan por aquí: leen `partidos.vista` vía PostgREST/Realtime.
 
@@ -16,6 +17,7 @@ import { withPostgresAdminClient, type PostgresApi } from '@supabase/server/midd
 import { ejecutarAccion } from './acciones/acciones.ts';
 import { crearPartido } from './crear/crear.ts';
 import { verHora } from './hora/hora.ts';
+import { recalcularTodo } from './mantenimiento/recalcular.ts';
 import { ErrorHttp, respuestaDeError } from './http.ts';
 import { verOpciones } from './opciones/opciones.ts';
 
@@ -70,10 +72,30 @@ function soloAdmin(
   };
 }
 
+/** Tareas de mantenimiento: solo con la clave secreta del proyecto (nunca desde la web). */
+function soloServicio(metodo: string, patron: RegExp, manejador: (db: PostgresApi) => Promise<Response>): Ruta {
+  return {
+    metodo,
+    patron,
+    fetch: pipeline(
+      [withSupabase({ auth: 'secret' }), withPostgresAdminClient({ pool: { max: 2 } })],
+      // deno-lint-ignore no-explicit-any
+      async (_req: Request, ctx: any) => {
+        try {
+          return await manejador(ctx.postgresAdmin);
+        } catch (error) {
+          return respuestaDeError(error);
+        }
+      },
+    ),
+  };
+}
+
 const RUTAS: Ruta[] = [
   publica('GET', /^\/opciones$/, verOpciones),
   publica('GET', /^\/hora$/, verHora),
   soloAdmin('POST', /^\/?$/, (req, db) => crearPartido(req, db)),
+  soloServicio('POST', /^\/recalcular$/, recalcularTodo),
   soloAdmin('POST', /^\/(?<id>\d+)\/acciones$/, (req, db, { id }) => ejecutarAccion(req, db, Number(id))),
 ];
 

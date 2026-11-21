@@ -45,6 +45,11 @@ function pintar(version: number, nueva: Vista, nuevoReloj: Reloj, nuevaProgramac
     const equipo = v.equipos[lado];
     const nombre = $(`#nombre-${posicion}`);
     nombre.textContent = equipo.nombre;
+    if (admin) {
+      nombre.setAttribute('role', 'button');
+      nombre.tabIndex = 0;
+      nombre.title = 'Cambiar nombre o color';
+    }
     nombre.style.setProperty('--color', colorDe(v, lado));
     nombre.style.setProperty('--texto', textoDe(v, lado));
 
@@ -128,10 +133,17 @@ function alternarPresentacion(activar = !document.body.classList.contains('prese
 
 function pintarEstado(v: Vista) {
   const estado = $('#estado');
+  // Resultado (o fin pendiente de confirmar) con el color del ganador.
+  const ganador = v.ganador ?? v.pendiente?.ganador;
+  estado.classList.toggle('coloreado', Boolean(ganador));
+  if (ganador) {
+    estado.style.setProperty('--color', colorDe(v, ganador));
+    estado.style.setProperty('--texto', textoDe(v, ganador));
+  }
   if (v.finalizado) {
     const ganador = v.ganador!;
-    const perdedor = ganador === 'local' ? 'visitante' : 'local';
-    estado.replaceChildren(`🏆 ${nombreDe(ganador)} gana el partido ${v.sets[ganador]}-${v.sets[perdedor]}`);
+    // Resultados siempre en orden local-visitante.
+    estado.replaceChildren(`🏆 ${nombreDe(ganador)} gana el partido ${v.sets.local}-${v.sets.visitante}`);
   } else if (v.pendiente) {
     const que = v.pendiente.tipo === 'partido' ? 'el partido' : `el set ${v.pendiente.set}`;
     const confirmar = el('button', { type: 'button', class: 'boton principal solo-admin' }, 'Confirmar');
@@ -144,8 +156,9 @@ function pintarEstado(v: Vista) {
 function pintarParciales(v: Vista) {
   $('#parciales').replaceChildren(...v.parciales.map((p, i) => {
     const item = el('li', {}, `Set ${i + 1}: `, el('strong', {}, `${p.local}-${p.visitante}`));
-    // Borde con el color del equipo que ganó el set.
+    // Con el color del equipo que ganó el set.
     item.style.setProperty('--color', colorDe(v, p.ganador));
+    item.style.setProperty('--texto', textoDe(v, p.ganador));
     item.title = `Lo ganó ${nombreDe(p.ganador)}`;
     return item;
   }));
@@ -159,12 +172,13 @@ function pintarHistorial(v: Vista) {
       el('span', { class: 'marcador-parcial' }, `${h.puntos.local}-${h.puntos.visitante} (${h.sets.local}-${h.sets.visitante})`),
       el('time', { datetime: h.en }, hora.format(new Date(h.en))),
     );
-    if (h.equipo) item.style.setProperty('--color', colorDe(v, h.equipo));
-    // El punto que cerró un set o el partido, totalmente coloreado.
-    if (h.cierre && h.equipo) {
-      item.classList.add('cierre');
+    // Cada jugada con el color del equipo; el punto que cierra un set o el partido, marcado.
+    if (h.equipo) {
+      item.classList.add('de-equipo');
+      item.style.setProperty('--color', colorDe(v, h.equipo));
       item.style.setProperty('--texto', textoDe(v, h.equipo));
     }
+    if (h.cierre) item.classList.add('cierre');
     return item;
   }));
   if (v.historial.length === 0) $('#lista-historial').replaceChildren(el('li', { class: 'vacio' }, 'Todavía no hay jugadas.'));
@@ -199,7 +213,7 @@ function avisarFinDeSet(v: Vista) {
   if (!admin || !v.pendiente || clave === null || dialogoPendiente) return;
 
   const ganador = nombreDe(v.pendiente.ganador);
-  const resultado = `${v.puntos[v.pendiente.ganador]}-${v.puntos[v.pendiente.ganador === 'local' ? 'visitante' : 'local']}`;
+  const resultado = `${v.puntos.local}-${v.puntos.visitante}`;
   const [titulo, texto] = v.pendiente.tipo === 'partido'
     ? ['Fin del partido', `${ganador} gana el último set ${resultado} y el partido. ¿Confirmas el final del partido?`]
     : [`Fin del set ${v.pendiente.set}`, `${ganador} gana el set ${resultado}. Al confirmar, los equipos cambiarán de lado.`];
@@ -302,10 +316,21 @@ function conectarControles() {
     ]);
     if (await respuesta) accion({ tipo: 'reset' });
   });
-  for (const boton of document.querySelectorAll<HTMLButtonElement>('.editar-equipo')) {
-    boton.addEventListener('click', () => {
-      const lado = $(`#panel-${boton.dataset.posicion}`).dataset.lado as Lado | undefined;
-      if (lado) editarEquipo(lado).catch((error) => avisarError((error as Error).message));
+  // Tocar el nombre de un equipo abre su edición (solo admin).
+  for (const posicion of ['izq', 'der']) {
+    const nombre = $(`#nombre-${posicion}`);
+    const editar = () => {
+      const lado = $(`#panel-${posicion}`).dataset.lado as Lado | undefined;
+      if (admin && lado && !document.body.classList.contains('presentacion')) {
+        editarEquipo(lado).catch((error) => avisarError((error as Error).message));
+      }
+    };
+    nombre.addEventListener('click', editar);
+    nombre.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        editar();
+      }
     });
   }
   $('#boton-reloj').addEventListener('click', () => {

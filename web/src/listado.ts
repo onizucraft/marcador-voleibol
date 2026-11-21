@@ -24,15 +24,16 @@ const masCercanoPrimero = (a: FilaPartido, b: FilaPartido) => Date.parse(a.progr
 
 function tarjeta(p: FilaPartido) {
   const equipo = (lado: Lado, sets: number) => {
-    const fila = el('div', { class: `equipo${p.ganador === lado ? ' ganador' : ''}` },
-      el('span', { class: 'muestra' }),
-      el('span', { class: 'equipo-nombre' }, p.equipos[lado].nombre),
+    const ganador = p.ganador === lado;
+    const fila = el('div', { class: `equipo${ganador ? ' ganador' : ''}` },
+      el('span', { class: 'equipo-nombre' }, ganador ? `🏆 ${p.equipos[lado].nombre}` : p.equipos[lado].nombre),
       el('span', { class: 'sets' }, String(sets)),
     );
     fila.style.setProperty('--color', p.equipos[lado].hex);
+    fila.style.setProperty('--texto', p.equipos[lado].texto ?? '#ffffff');
     return fila;
   };
-  const enlace = el('a', { class: `tarjeta partido${p.ganador ? ' con-ganador' : ''}`, href: `partido.html?id=${p.id}` },
+  return el('a', { class: 'tarjeta partido', href: `partido.html?id=${p.id}` },
     el('div', { class: 'meta' },
       el('time', { datetime: fechaDe(p), title: p.comenzado_en ? 'Comienzo' : 'Fecha y hora previstas' }, formatoFecha.format(new Date(fechaDe(p)))),
       el('span', { class: `etiqueta-estado ${p.estado}` }, ETIQUETAS[p.estado]),
@@ -40,9 +41,6 @@ function tarjeta(p: FilaPartido) {
     equipo('local', p.sets_local),
     equipo('visitante', p.sets_visitante),
   );
-  // Partidos terminados: borde con el color del ganador.
-  if (p.ganador) enlace.style.setProperty('--ganador', p.equipos[p.ganador].hex);
-  return enlace;
 }
 
 function pintarLista(contenedor: HTMLElement, partidos: FilaPartido[], vacio: string) {

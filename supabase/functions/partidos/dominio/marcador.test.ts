@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {
   accionDeReloj,
   COLORES,
+  contrasteWcag,
+  recalcularVista,
   CONFIG_POR_DEFECTO,
   comienzoTras,
   resumir,
@@ -306,21 +308,34 @@ test('cada color tiene su alternativa: azul y azul marino pueden enfrentarse', (
   assert.throws(() => validarNuevoPartido({ programadoEn: AHORA, equipos: { local: { color: 'blanco' } } }), /Color no válido/);
 });
 
-/** Contraste WCAG 2.x entre dos colores #rrggbb. */
-function contraste(a: string, b: string) {
-  const luminancia = (hex: string) => {
-    const [r, g, bl] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
-      .map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-    return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
-  };
-  const [claro, oscuro] = [luminancia(a), luminancia(b)].sort((x, y) => y - x);
-  return (claro + 0.05) / (oscuro + 0.05);
-}
-
 test('todos los colores llevan texto blanco legible (WCAG 1.4.3, mínimo 4,5:1)', () => {
   for (const color of COLORES) {
     assert.equal(color.texto, '#ffffff', color.nombre);
-    assert.ok(contraste(color.hex, color.texto) >= 4.5, `${color.nombre}: ${contraste(color.hex, color.texto).toFixed(2)}`);
+    assert.ok(contrasteWcag(color.hex, color.texto) >= 4.5, `${color.nombre}: ${contrasteWcag(color.hex, color.texto).toFixed(2)}`);
   }
   assert.equal(COLORES.length % 2, 0, 'cada color tiene su alternativa');
+});
+
+test('recalcular una vista antigua funde los cierres y da texto legible a colores retirados', () => {
+  const jugado = jugar(nuevoPartido(), ...puntos('local', 25), { tipo: 'confirmar' });
+  const partido = { ...jugado.partido, equipos: { ...jugado.partido.equipos, local: { nombre: 'Viejo', color: 'amarillo', hex: '#f9a825' } } } as never;
+  const vista = recalcularVista(partido);
+  assert.equal(vista.historial.length, 25);
+  assert.equal(vista.historial.at(-1)!.cierre, 'set');
+  assert.equal(vista.equipos.local.hex, '#f9a825');
+  assert.equal(vista.equipos.local.texto, '#1a1a1a');
+  assert.ok(contrasteWcag(vista.equipos.local.hex, vista.equipos.local.texto) >= 4.5);
+  assert.equal(vista.equipos.visitante.texto, '#ffffff');
+});
+
+test('el resultado del partido se lee siempre local-visitante', () => {
+  const config = { setsParaGanar: 2, puntosPorSet: 2, puntosUltimoSet: 2 };
+  const { vista } = jugar(
+    nuevoPartido(config),
+    ...puntos('local', 2), { tipo: 'confirmar' },
+    ...puntos('visitante', 2), { tipo: 'confirmar' },
+    ...puntos('visitante', 2), { tipo: 'confirmar' },
+  );
+  assert.equal(vista.ganador, 'visitante');
+  assert.equal(vista.historial.at(-1)!.descripcion, 'Punto para Visitante · Visitante gana el partido 1-2');
 });
