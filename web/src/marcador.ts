@@ -46,6 +46,7 @@ function pintar(version: number, nueva: Vista, nuevoReloj: Reloj, nuevaProgramac
     const nombre = $(`#nombre-${posicion}`);
     nombre.textContent = equipo.nombre;
     nombre.style.setProperty('--color', colorDe(v, lado));
+    nombre.style.setProperty('--texto', textoDe(v, lado));
 
     const panel = $(`#panel-${posicion}`);
     panel.dataset.lado = lado;
@@ -159,6 +160,11 @@ function pintarHistorial(v: Vista) {
       el('time', { datetime: h.en }, hora.format(new Date(h.en))),
     );
     if (h.equipo) item.style.setProperty('--color', colorDe(v, h.equipo));
+    // El punto que cerró un set o el partido, totalmente coloreado.
+    if (h.cierre && h.equipo) {
+      item.classList.add('cierre');
+      item.style.setProperty('--texto', textoDe(v, h.equipo));
+    }
     return item;
   }));
   if (v.historial.length === 0) $('#lista-historial').replaceChildren(el('li', { class: 'vacio' }, 'Todavía no hay jugadas.'));

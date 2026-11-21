@@ -44,8 +44,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 .logo-grande { display: block; width: min(18rem, 70%); height: auto; margin: 0 auto 0.5rem; }
 .cabecera nav { display: flex; align-items: center; gap: 1rem; }
 .cabecera.compacta { padding: 0.5rem 1rem; background: transparent; }
-.cabecera .info { color: var(--texto-suave); font-size: 0.9rem; text-align: center; }
-.centro-cabecera { display: grid; justify-items: center; gap: 0.1rem; }
+.resumen { display: grid; justify-items: center; gap: 0.15rem; color: var(--texto-suave); font-size: 0.9rem; text-align: center; }
 .programacion { display: flex; align-items: center; gap: 0.2rem; color: var(--texto-suave); font-size: 0.85rem; }
 .programacion .control { font-size: 1.1rem; }
 
@@ -132,6 +131,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
   grid-template-areas:
     'nombre-izq reloj nombre-der'
     'panel-izq  centro panel-der'
+    'resumen    resumen resumen'
     'estado     estado estado'
     'parciales  parciales parciales';
 }
@@ -142,6 +142,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 .zona-reloj { grid-area: reloj; }
 .centro { grid-area: centro; }
 .estado { grid-area: estado; }
+.resumen { grid-area: resumen; }
 .parciales { grid-area: parciales; }
 
 .cabecera-equipo { display: flex; align-items: center; justify-content: center; gap: 0.25rem; min-width: 0; }
@@ -152,7 +153,8 @@ body:not(.es-admin) .solo-admin { display: none !important; }
   background: var(--fondo); color: var(--texto);
 }
 .marcador .nombre {
-  color: var(--color); text-shadow: 0 0 0.15em rgb(255 255 255 / 0.18); font-size: clamp(1.25rem, 3vw, 2.25rem); font-weight: 500; text-align: center;
+  background: var(--color); color: var(--texto, #fff); padding: 0.05em 0.6em; border-radius: 0.6rem;
+  max-width: 100%; font-size: clamp(1.25rem, 3vw, 2.25rem); font-weight: 500; text-align: center;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
@@ -233,6 +235,8 @@ body:not(.es-admin) .controles { grid-template-columns: repeat(2, auto); }
   border: 3px solid var(--color, #444); font-size: 0.95rem;
 }
 .historial li.vacio { display: block; border: none; }
+.historial li.cierre { background: var(--color); color: var(--texto, #fff); font-weight: 600; }
+.historial li.cierre :is(.set, time) { color: inherit; opacity: 0.85; }
 .historial .set, .historial time { color: var(--texto-suave); font-size: 0.85rem; }
 .historial .marcador-parcial { font-variant-numeric: tabular-nums; }
 
@@ -246,11 +250,11 @@ body:not(.es-admin) .controles { grid-template-columns: repeat(2, auto); }
       'nombre-izq nombre-der'
       'panel-izq  panel-der'
       'centro     centro'
+      'resumen    resumen'
       'estado     estado'
       'parciales  parciales';
   }
   .panel { aspect-ratio: 3 / 4; }
-  .cabecera .info { font-size: 0.8rem; }
   .centro { gap: 1rem; }
   .controles { grid-template-columns: repeat(4, auto); }
   .historial li { grid-template-columns: 1fr auto; }
@@ -278,7 +282,7 @@ body.es-admin .panel :is(.menos-uno, .mas-dos):not(:disabled):active { backgroun
 /* ---------- Pantalla completa: solo marcador, sets y tiempo ---------- */
 
 body.presentacion { overflow: hidden; }
-body.presentacion :is(.cabecera, .controles, .estado, .parciales, .historial, .editar-equipo,
+body.presentacion :is(.cabecera, .controles, .resumen, .estado, .parciales, .historial, .editar-equipo,
   #boton-reloj, .mas-dos, .menos-uno, .lado-etiqueta) { display: none !important; }
 body.presentacion .marcador {
   max-width: none; height: 100dvh; padding: 2vh 2vw; gap: 2vh 2vw; align-items: stretch;

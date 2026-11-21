@@ -15,24 +15,23 @@ export interface Color {
   texto: string;
 }
 
-// Colores de equipación por parejas: el principal y su alternativa (más clara u oscura)
-// para cuando los dos equipos visten del mismo color. El orden importa: el selector
-// los muestra en columnas, el principal encima de su alternativa.
+// Colores de equipación por parejas: el principal y una alternativa más oscura para
+// cuando los dos equipos visten del mismo color. Todos llevan texto blanco con contraste
+// mínimo 4,5:1 (WCAG 1.4.3); lo comprueba un test. El selector los muestra en columnas,
+// el principal encima de su alternativa, así que el orden importa.
 export const COLORES: readonly Color[] = [
-  { id: 'rojo', nombre: 'Rojo', hex: '#e53935', texto: '#ffffff' },
-  { id: 'granate', nombre: 'Granate', hex: '#a8282e', texto: '#ffffff' },
-  { id: 'naranja', nombre: 'Naranja', hex: '#f57c00', texto: '#ffffff' },
-  { id: 'naranja_claro', nombre: 'Naranja claro', hex: '#ffb74d', texto: '#1a1a1a' },
-  { id: 'amarillo', nombre: 'Amarillo', hex: '#fdd835', texto: '#1a1a1a' },
-  { id: 'mostaza', nombre: 'Mostaza', hex: '#c9a000', texto: '#1a1a1a' },
-  { id: 'verde', nombre: 'Verde', hex: '#2e8b3a', texto: '#ffffff' },
-  { id: 'verde_claro', nombre: 'Verde claro', hex: '#8bc34a', texto: '#1a1a1a' },
-  { id: 'azul', nombre: 'Azul', hex: '#2962e6', texto: '#ffffff' },
-  { id: 'celeste', nombre: 'Azul claro', hex: '#4fc3f7', texto: '#0d2233' },
-  { id: 'morado', nombre: 'Morado', hex: '#9c34c0', texto: '#ffffff' },
-  { id: 'lila', nombre: 'Lila', hex: '#ce93d8', texto: '#1a1a1a' },
-  { id: 'rosa', nombre: 'Rosa', hex: '#ec407a', texto: '#ffffff' },
-  { id: 'rosa_claro', nombre: 'Rosa claro', hex: '#f8bbd0', texto: '#1a1a1a' },
+  { id: 'rojo', nombre: 'Rojo', hex: '#d32f2f', texto: '#ffffff' },
+  { id: 'granate', nombre: 'Granate', hex: '#9b2226', texto: '#ffffff' },
+  { id: 'naranja', nombre: 'Naranja', hex: '#c2410c', texto: '#ffffff' },
+  { id: 'teja', nombre: 'Teja', hex: '#8f3510', texto: '#ffffff' },
+  { id: 'verde', nombre: 'Verde', hex: '#2e7d32', texto: '#ffffff' },
+  { id: 'verde_oscuro', nombre: 'Verde oscuro', hex: '#1d5e24', texto: '#ffffff' },
+  { id: 'azul', nombre: 'Azul', hex: '#1d5fd1', texto: '#ffffff' },
+  { id: 'marino', nombre: 'Azul marino', hex: '#26479f', texto: '#ffffff' },
+  { id: 'morado', nombre: 'Morado', hex: '#8e24aa', texto: '#ffffff' },
+  { id: 'morado_oscuro', nombre: 'Morado oscuro', hex: '#6a1f88', texto: '#ffffff' },
+  { id: 'rosa', nombre: 'Rosa', hex: '#c2185b', texto: '#ffffff' },
+  { id: 'frambuesa', nombre: 'Frambuesa', hex: '#8f1150', texto: '#ffffff' },
 ];
 
 export interface Config {
@@ -132,7 +131,7 @@ function validarEquipo(datos: Entrada, base: { nombre: string; color: string } |
 
 function comprobarColoresDistintos(equipos: Equipos) {
   if (equipos.local.color === equipos.visitante.color) {
-    throw new ErrorDominio('Los dos equipos no pueden tener el mismo color: elige la versión clara u oscura para uno de ellos');
+    throw new ErrorDominio('Los dos equipos no pueden tener el mismo color: elige la versión oscura para uno de ellos');
   }
 }
 
@@ -259,6 +258,8 @@ export interface EntradaHistorial {
   descripcion: string;
   tipo: TipoEvento;
   equipo: Lado | null;
+  /** El punto que cerró un set o el partido (ya confirmado): se muestra destacado. */
+  cierre: 'set' | 'partido' | null;
   set: number;
   puntos: Record<Lado, number>;
   sets: Record<Lado, number>;
@@ -303,11 +304,23 @@ function construirVista(config: Config, guardados: Equipos, aplicados: Evento[],
   for (const evento of aplicados) {
     const anterior = estado;
     estado = aplicar(anterior, evento, config);
+    // Confirmar el fin de set/partido no ocupa línea propia: se funde con el punto que lo
+    // cerró, que queda con el resultado del set y los sets ya actualizados.
+    const punto = evento.tipo === 'confirmar' ? historial.findLast((h) => h.tipo === 'punto') : undefined;
+    if (punto) {
+      const { tipo, ganador } = anterior.pendiente!;
+      punto.cierre = tipo;
+      punto.sets = { ...estado.sets };
+      punto.descripcion += tipo === 'partido'
+        ? ` · ${equipos[ganador].nombre} gana el partido ${estado.sets[ganador]}-${estado.sets[otro(ganador)]}`
+        : ` · ${equipos[ganador].nombre} gana el set ${numeroDeSet(anterior.sets)} · cambio de lado`;
+      continue;
+    }
     historial.push({
       descripcion: describir(evento, anterior, equipos),
       tipo: evento.tipo,
-      // Los cierres de set/partido se atribuyen al ganador (para colorearlos).
       equipo: evento.equipo ?? (evento.tipo === 'confirmar' ? anterior.pendiente!.ganador : null),
+      cierre: null,
       set: numeroDeSet(anterior.sets),
       puntos: { ...estado.puntos },
       sets: { ...estado.sets },
