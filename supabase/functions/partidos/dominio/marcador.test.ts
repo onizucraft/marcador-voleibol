@@ -26,8 +26,8 @@ function jugar(partido: PartidoGuardado, ...acciones: object[]) {
   let cambio;
   for (const accion of acciones) {
     cambio = resolverAccion(actual, accion, AHORA);
-    const eventos = cambio.evento
-      ? [...actual.eventos.slice(0, actual.cursor), cambio.evento]
+    const eventos = cambio.escribir
+      ? [...actual.eventos.slice(0, cambio.escribir.desde - 1), ...cambio.escribir.eventos]
       : actual.eventos;
     actual = { ...actual, cursor: cambio.cursor, eventos };
   }
@@ -132,14 +132,14 @@ test('cambio de lado manual', () => {
 
 test('validación de un partido nuevo', () => {
   const { config, equipos } = validarNuevoPartido({
-    equipos: { local: { nombre: ' Galapagar A ', color: 'azul' } },
+    equipos: { local: { nombre: ' Galapagar A ', color: 'verde' } },
     config: { setsParaGanar: 2 },
   });
   assert.equal(equipos.local.nombre, 'Galapagar A');
-  assert.equal(equipos.local.hex, '#1e88e5');
+  assert.equal(equipos.local.hex, '#2e7d32');
   assert.equal(config.setsParaGanar, 2);
   assert.equal(config.puntosUltimoSet, 15);
-  assert.throws(() => validarNuevoPartido({ equipos: { local: { color: 'rosa' } } }), /mismo color/);
+  assert.throws(() => validarNuevoPartido({ equipos: { local: { color: 'azul' } } }), /mismo color/);
   assert.throws(() => validarNuevoPartido({ config: { puntosPorSet: 0 } }), /Puntos por set/);
   assert.throws(() => validarNuevoPartido({ equipos: { local: { color: 'fucsia' } } }), /Color no válido/);
 });
@@ -181,7 +181,7 @@ test('al confirmar el final del partido el reloj se para solo', () => {
 test('editar un equipo a mitad de partido conserva el marcador y actualiza el historial', () => {
   const { partido } = jugar(nuevoPartido(), ...puntos('local', 3), { tipo: 'deshacer' });
   const { equipos, vista } = editarEquipo(partido, { equipo: 'local', nombre: ' Galapagar A ', color: 'verde' });
-  assert.deepEqual(equipos.local, { nombre: 'Galapagar A', color: 'verde', hex: '#43a047' });
+  assert.deepEqual(equipos.local, { nombre: 'Galapagar A', color: 'verde', hex: '#2e7d32', texto: '#ffffff', tinta: '#4caf50' });
   assert.deepEqual(equipos.visitante, partido.equipos.visitante);
   assert.equal(vista.puntos.local, 2);
   assert.equal(vista.puedeRehacer, true);
@@ -190,13 +190,59 @@ test('editar un equipo a mitad de partido conserva el marcador y actualiza el hi
 
 test('editar solo el color (o solo el nombre) mantiene lo demás', () => {
   const partido = nuevoPartido();
-  assert.equal(editarEquipo(partido, { equipo: 'visitante', color: 'azul' }).equipos.visitante.nombre, 'Visitante');
-  assert.equal(editarEquipo(partido, { equipo: 'visitante', nombre: 'B' }).equipos.visitante.color, 'rosa');
+  assert.equal(editarEquipo(partido, { equipo: 'visitante', color: 'verde' }).equipos.visitante.nombre, 'Visitante');
+  assert.equal(editarEquipo(partido, { equipo: 'visitante', nombre: 'B' }).equipos.visitante.color, 'azul');
 });
 
 test('editar equipo valida color, nombre y lado', () => {
   const partido = nuevoPartido();
-  assert.throws(() => editarEquipo(partido, { equipo: 'local', color: 'rosa' }), /mismo color/);
+  assert.throws(() => editarEquipo(partido, { equipo: 'local', color: 'azul' }), /mismo color/);
   assert.throws(() => editarEquipo(partido, { equipo: 'local', nombre: 'x'.repeat(31) }), /30 caracteres/);
   assert.throws(() => editarEquipo(partido, { equipo: 'arbitro', nombre: 'X' }), /Equipo no válido/);
+});
+
+const historialSinHora = (vista: { historial: { descripcion: string; puntos: object }[] }) =>
+  vista.historial.map((h) => `${h.descripcion} → ${JSON.stringify(h.puntos)}`);
+
+test('quitar un punto corrige el histórico como si nunca se hubiera anotado', () => {
+  const conError = jugar(nuevoPartido(), { tipo: 'punto', equipo: 'local' }, { tipo: 'punto', equipo: 'local' }, { tipo: 'punto', equipo: 'visitante' });
+  const { partido, vista } = jugar(conError.partido, { tipo: 'quitar_punto', equipo: 'local' });
+  const limpio = jugar(nuevoPartido(), { tipo: 'punto', equipo: 'local' }, { tipo: 'punto', equipo: 'visitante' });
+  assert.deepEqual(vista.puntos, { local: 1, visitante: 1 });
+  assert.deepEqual(historialSinHora(vista), historialSinHora(limpio.vista));
+  assert.equal(vista.historial.some((h) => /quit|correc|-1|−1/i.test(h.descripcion)), false);
+  assert.equal(partido.eventos.length, 2);
+});
+
+test('quitar un punto de un +2 lo deja en +1', () => {
+  const { vista } = jugar(nuevoPartido(), { tipo: 'punto', equipo: 'visitante', valor: 2 }, { tipo: 'quitar_punto', equipo: 'visitante' });
+  assert.equal(vista.puntos.visitante, 1);
+  assert.equal(vista.historial[0].descripcion, 'Punto para Visitante');
+});
+
+test('quitar el punto que cerraba el set anula el aviso de fin de set', () => {
+  const pendiente = jugar(nuevoPartido(), ...puntos('local', 25));
+  assert.ok(pendiente.vista.pendiente);
+  const { vista } = jugar(pendiente.partido, { tipo: 'quitar_punto', equipo: 'local' });
+  assert.equal(vista.pendiente, null);
+  assert.equal(vista.puntos.local, 24);
+});
+
+test('quitar punto solo afecta al set actual y descarta el rehacer', () => {
+  const cerrado = jugar(nuevoPartido(), ...puntos('local', 25), { tipo: 'confirmar' });
+  assert.throws(() => resolverAccion(cerrado.partido, { tipo: 'quitar_punto', equipo: 'local' }, AHORA), /no tiene puntos que quitar/);
+  const conRehacer = jugar(cerrado.partido, ...puntos('local', 2), { tipo: 'deshacer' });
+  assert.equal(conRehacer.vista.puedeRehacer, true);
+  const { vista } = jugar(conRehacer.partido, { tipo: 'quitar_punto', equipo: 'local' });
+  assert.deepEqual([vista.puntos.local, vista.sets.local, vista.puedeRehacer], [0, 1, false]);
+});
+
+test('la vista usa la paleta actual y respeta colores antiguos', () => {
+  const partido = nuevoPartido();
+  partido.equipos.local = { nombre: 'Viejo', color: 'indigo', hex: '#3f51b5' } as never;
+  const { vista } = jugar(partido, { tipo: 'punto', equipo: 'local' });
+  assert.equal(vista.equipos.local.hex, '#3f51b5');
+  assert.equal(vista.equipos.local.texto, '#ffffff');
+  assert.equal(vista.equipos.visitante.tinta, '#5c8dff');
+  assert.equal(editarEquipo(partido, { equipo: 'local', nombre: 'Nuevo' }).equipos.local.color, 'indigo');
 });

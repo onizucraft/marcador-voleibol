@@ -9,22 +9,26 @@ const otro = (lado: Lado): Lado => (lado === 'local' ? 'visitante' : 'local');
 export interface Color {
   id: string;
   nombre: string;
+  /** Relleno del panel del equipo. */
   hex: string;
+  /** Color de los números sobre el relleno. */
+  texto: string;
+  /** Color del nombre del equipo sobre el fondo oscuro de la página. */
+  tinta: string;
 }
 
+// Colores de equipación bien separados entre sí (y los claros, con números oscuros).
 export const COLORES: readonly Color[] = [
-  { id: 'rojo', nombre: 'Rojo', hex: '#f44336' },
-  { id: 'rosa', nombre: 'Rosa', hex: '#e91e63' },
-  { id: 'morado', nombre: 'Morado', hex: '#9c27b0' },
-  { id: 'indigo', nombre: 'Índigo', hex: '#3f51b5' },
-  { id: 'azul', nombre: 'Azul', hex: '#1e88e5' },
-  { id: 'celeste', nombre: 'Celeste', hex: '#039be5' },
-  { id: 'turquesa', nombre: 'Turquesa', hex: '#00897b' },
-  { id: 'verde', nombre: 'Verde', hex: '#43a047' },
-  { id: 'amarillo', nombre: 'Amarillo', hex: '#f9a825' },
-  { id: 'naranja', nombre: 'Naranja', hex: '#fb8c00' },
-  { id: 'marron', nombre: 'Marrón', hex: '#6d4c41' },
-  { id: 'gris', nombre: 'Gris', hex: '#546e7a' },
+  { id: 'rojo', nombre: 'Rojo', hex: '#e53935', texto: '#ffffff', tinta: '#ef5350' },
+  { id: 'naranja', nombre: 'Naranja', hex: '#f57c00', texto: '#ffffff', tinta: '#fb8c00' },
+  { id: 'amarillo', nombre: 'Amarillo', hex: '#fdd835', texto: '#1a1a1a', tinta: '#fdd835' },
+  { id: 'verde', nombre: 'Verde', hex: '#2e7d32', texto: '#ffffff', tinta: '#4caf50' },
+  { id: 'celeste', nombre: 'Celeste', hex: '#4fc3f7', texto: '#0d2233', tinta: '#4fc3f7' },
+  { id: 'azul', nombre: 'Azul', hex: '#1e4fd8', texto: '#ffffff', tinta: '#5c8dff' },
+  { id: 'morado', nombre: 'Morado', hex: '#8e24aa', texto: '#ffffff', tinta: '#ba68c8' },
+  { id: 'rosa', nombre: 'Rosa', hex: '#ec407a', texto: '#ffffff', tinta: '#f06292' },
+  { id: 'blanco', nombre: 'Blanco', hex: '#f5f5f5', texto: '#1a1a1a', tinta: '#f5f5f5' },
+  { id: 'negro', nombre: 'Negro', hex: '#111111', texto: '#ffffff', tinta: '#bdbdbd' },
 ];
 
 export interface Config {
@@ -56,12 +60,14 @@ export interface Equipo {
   nombre: string;
   color: string;
   hex: string;
+  texto: string;
+  tinta: string;
 }
 export type Equipos = Record<Lado, Equipo>;
 
 export const EQUIPOS_POR_DEFECTO: Record<Lado, { nombre: string; color: string }> = {
   local: { nombre: 'Local', color: 'rojo' },
-  visitante: { nombre: 'Visitante', color: 'rosa' },
+  visitante: { nombre: 'Visitante', color: 'azul' },
 };
 const LONGITUD_MAXIMA_NOMBRE = 30;
 
@@ -109,15 +115,16 @@ export function validarNuevoPartido(entrada: Entrada): { config: Config; equipos
 }
 
 /** Lo que no venga (o venga vacío) se toma de `base`. */
-function validarEquipo(datos: Entrada, base: { nombre: string; color: string }): Equipo {
+function validarEquipo(datos: Entrada, base: { nombre: string; color: string } | Equipo): Equipo {
   const nombre = String(datos?.nombre ?? '').trim() || base.nombre;
   if (nombre.length > LONGITUD_MAXIMA_NOMBRE) {
     throw new ErrorDominio(`El nombre del equipo no puede superar ${LONGITUD_MAXIMA_NOMBRE} caracteres`);
   }
   const colorId = datos?.color ?? base.color;
   const color = COLORES.find((c) => c.id === colorId);
+  if (!color && 'hex' in base && colorId === base.color) return { ...(base as Equipo), nombre };
   if (!color) throw new ErrorDominio(`Color no válido: ${colorId}`);
-  return { nombre, color: color.id, hex: color.hex };
+  return { nombre, color: color.id, hex: color.hex, texto: color.texto, tinta: color.tinta };
 }
 
 function comprobarColoresDistintos(equipos: Equipos) {
@@ -277,7 +284,17 @@ export interface Vista {
   puedeRehacer: boolean;
 }
 
-function construirVista(config: Config, equipos: Equipos, aplicados: Evento[], totalEventos: number): Vista {
+/** Tonos según la paleta actual; si el color ya no existe se conserva el guardado. */
+function conPaleta(equipos: Equipos): Equipos {
+  const con = (e: Equipo): Equipo => {
+    const c = COLORES.find((color) => color.id === e.color);
+    return c ? { ...e, hex: c.hex, texto: c.texto, tinta: c.tinta } : { ...e, texto: e.texto ?? '#ffffff', tinta: e.tinta ?? e.hex };
+  };
+  return { local: con(equipos.local), visitante: con(equipos.visitante) };
+}
+
+function construirVista(config: Config, guardados: Equipos, aplicados: Evento[], totalEventos: number): Vista {
+  const equipos = conPaleta(guardados);
   let estado = estadoInicial();
   const historial: EntradaHistorial[] = [];
   for (const evento of aplicados) {
@@ -331,12 +348,15 @@ export interface PartidoGuardado {
 export interface Cambio {
   cursor: number;
   total: number;
-  /** Evento nuevo a guardar en la posición `cursor`; null en deshacer/rehacer. */
-  evento: Evento | null;
+  /**
+   * Eventos a guardar a partir de la posición `desde` (1-based), sustituyendo esa
+   * posición y todas las siguientes. null en deshacer/rehacer, que solo mueven el cursor.
+   */
+  escribir: { desde: number; eventos: Evento[] } | null;
   vista: Vista;
 }
 
-const ACCIONES = ['deshacer', 'rehacer', ...TIPOS_EVENTO];
+const ACCIONES = ['deshacer', 'rehacer', 'quitar_punto', ...TIPOS_EVENTO];
 
 export function resolverAccion(partido: PartidoGuardado, accion: Entrada, ahora: string): Cambio {
   const { config, equipos, cursor, eventos } = partido;
@@ -352,23 +372,51 @@ export function resolverAccion(partido: PartidoGuardado, accion: Entrada, ahora:
     return conCursor(cursor + 1);
   }
 
+  if (tipo === 'quitar_punto') return quitarPunto(partido, accion?.equipo);
+
   const evento: Evento =
     tipo === 'punto'
       ? { tipo, equipo: accion.equipo, valor: accion.valor ?? 1, en: ahora }
       : { tipo, en: ahora };
   // Una acción nueva descarta lo que se pudiera rehacer, como en cualquier editor.
-  const aplicados = [...eventos.slice(0, cursor), evento];
-  const vista = construirVista(config, equipos, aplicados, aplicados.length);
-  return { cursor: aplicados.length, total: aplicados.length, evento, vista };
+  return reescribir(partido, cursor, [evento]);
 
   function conCursor(nuevo: number): Cambio {
     return {
       cursor: nuevo,
       total: eventos.length,
-      evento: null,
+      escribir: null,
       vista: construirVista(config, equipos, eventos.slice(0, nuevo), eventos.length),
     };
   }
+}
+
+/**
+ * Sustituye los eventos aplicados a partir del índice `indice` (0-based) por `nuevos`.
+ * Lo que hubiera para rehacer se descarta.
+ */
+function reescribir(partido: PartidoGuardado, indice: number, nuevos: Evento[]): Cambio {
+  const aplicados = [...partido.eventos.slice(0, indice), ...nuevos];
+  const vista = construirVista(partido.config, partido.equipos, aplicados, aplicados.length);
+  return { cursor: aplicados.length, total: aplicados.length, escribir: { desde: indice + 1, eventos: nuevos }, vista };
+}
+
+/**
+ * Restar un punto es una corrección del histórico, no una jugada: el último punto de
+ * ese equipo en el set actual pasa de +2 a +1, o desaparece si era +1. El historial
+ * queda como si nunca se hubiera anotado, y por eso no se puede deshacer.
+ */
+function quitarPunto(partido: PartidoGuardado, equipo: Lado): Cambio {
+  if (!LADOS.includes(equipo)) throw new ErrorDominio('Equipo no válido');
+  const aplicados = partido.eventos.slice(0, partido.cursor);
+  const inicioSet = aplicados.findLastIndex((e) => e.tipo === 'confirmar' || e.tipo === 'reset') + 1;
+  const indice = aplicados.findLastIndex((e, i) => i >= inicioSet && e.tipo === 'punto' && e.equipo === equipo);
+  if (indice < 0) {
+    throw new ErrorDominio(`${partido.equipos[equipo].nombre} no tiene puntos que quitar en este set`, 'conflicto');
+  }
+  const punto = aplicados[indice];
+  const posteriores = aplicados.slice(indice + 1);
+  return reescribir(partido, indice, punto.valor === 2 ? [{ ...punto, valor: 1 }, ...posteriores] : posteriores);
 }
 
 // ---------- Edición de equipos ----------

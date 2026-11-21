@@ -52,7 +52,7 @@ const { error: errorRegistro } = await publico.auth.signUp({ email: 'intruso@exa
 assert.ok(errorRegistro, 'el registro público debería estar desactivado');
 paso('registro público desactivado');
 
-const invalido = await invocar(admin, '', { equipos: { local: { color: 'rosa' } } });
+const invalido = await invocar(admin, '', { equipos: { local: { color: 'azul' } } });
 assert.equal(invalido.estado, 400);
 assert.match(invalido.cuerpo.error, /mismo color/);
 paso('validación de partido → 400 con mensaje en español');
@@ -101,7 +101,8 @@ paso('cambio de lado');
 
 r = await accion({ tipo: 'editar_equipo', equipo: 'local', nombre: 'Prueba humo A2', color: 'verde' });
 assert.equal(r.estado, 200);
-assert.deepEqual(r.cuerpo.vista.equipos.local, { nombre: 'Prueba humo A2', color: 'verde', hex: '#43a047' });
+assert.equal(r.cuerpo.vista.equipos.local.nombre, 'Prueba humo A2');
+assert.equal(r.cuerpo.vista.equipos.local.color, 'verde');
 assert.equal((await accion({ tipo: 'editar_equipo', equipo: 'local', color: 'naranja' })).estado, 400);
 r = await accion({ tipo: 'deshacer' });
 assert.equal(r.cuerpo.vista.equipos.local.nombre, 'Prueba humo A2', 'deshacer no debe revertir el nombre');
@@ -116,6 +117,17 @@ assert.ok(concurrentes.every((c) => c.estado === 200), JSON.stringify(concurrent
 const { data: tras } = await publico.from('partidos').select('vista').eq('id', id).single();
 assert.deepEqual(tras!.vista.puntos, { local: 2, visitante: 3 });
 paso('puntos concurrentes no se pierden');
+
+// Corrección: el visitante tenía 3; uno se anotó por error en medio de la secuencia.
+const antes = tras!.vista.historial.length;
+r = await accion({ tipo: 'quitar_punto', equipo: 'visitante' });
+assert.deepEqual(r.cuerpo.vista.puntos, { local: 2, visitante: 2 });
+assert.equal(r.cuerpo.vista.historial.length, antes - 1);
+assert.equal(r.cuerpo.vista.historial.at(-1).descripcion.startsWith('Punto para'), true);
+assert.equal(r.cuerpo.vista.puedeRehacer, false);
+r = await accion({ tipo: 'punto', equipo: 'visitante' });
+assert.deepEqual(r.cuerpo.vista.puntos, { local: 2, visitante: 3 });
+paso('restar un punto corrige el histórico sin dejar rastro');
 
 await accion({ tipo: 'punto', equipo: 'visitante' });
 r = await accion({ tipo: 'punto', equipo: 'visitante' });

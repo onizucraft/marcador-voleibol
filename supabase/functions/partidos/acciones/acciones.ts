@@ -94,13 +94,17 @@ async function guardarEquipos(db: PostgresApi, id: number, version: number, equi
   return filas.length === 1;
 }
 
-/** Escribe el cambio en una única sentencia (atómica). Devuelve false si la versión ya no coincide. */
+/**
+ * Escribe el cambio en una única sentencia (atómica). Devuelve false si la versión ya no coincide.
+ * Los eventos se sustituyen desde la posición `desde`: un punto nuevo reescribe solo esa
+ * posición; una corrección del histórico reescribe desde el punto corregido en adelante.
+ */
 async function guardar(db: PostgresApi, id: number, version: number, cambio: Cambio, reloj: Reloj): Promise<boolean> {
   const r = resumir(cambio.vista);
   const vista = JSON.stringify(cambio.vista);
   const relojJson = JSON.stringify(reloj);
 
-  if (!cambio.evento) {
+  if (!cambio.escribir) {
     const filas = await db.query`
       update public.partidos
          set cursor = ${cambio.cursor}, total = ${cambio.total}, version = version + 1,
@@ -111,9 +115,10 @@ async function guardar(db: PostgresApi, id: number, version: number, cambio: Cam
     return filas.length === 1;
   }
 
-  // Evento nuevo en la posición `cursor`: sobrescribe el que hubiera deshecho ahí
-  // y borra los posteriores (ya no se pueden rehacer).
-  const { tipo, equipo, valor, en } = cambio.evento;
+  const { desde, eventos } = cambio.escribir;
+  const nuevos = JSON.stringify(eventos.map(({ tipo, equipo, valor, en }) => ({ tipo, equipo: equipo ?? null, valor: valor ?? null, en })));
+  // La PK de eventos es DEFERRABLE: borrar e insertar las mismas posiciones en la misma
+  // sentencia es válido porque la unicidad se comprueba al final.
   const filas = await db.query`
     with actualizado as (
       update public.partidos
@@ -122,14 +127,15 @@ async function guardar(db: PostgresApi, id: number, version: number, cambio: Cam
              estado = ${r.estado}, sets_local = ${r.setsLocal}, sets_visitante = ${r.setsVisitante}, ganador = ${r.ganador}
        where id = ${id} and version = ${version}
       returning id
-    ), evento as (
-      insert into public.eventos (partido_id, seq, tipo, equipo, valor, creado_en)
-      select id, ${cambio.cursor}, ${tipo}, ${equipo ?? null}, ${valor ?? null}, ${en}::timestamptz from actualizado
-      on conflict (partido_id, seq) do update
-         set tipo = excluded.tipo, equipo = excluded.equipo, valor = excluded.valor, creado_en = excluded.creado_en
     ), descartados as (
       delete from public.eventos
-       where partido_id in (select id from actualizado) and seq > ${cambio.cursor}
+       where partido_id in (select id from actualizado) and seq >= ${desde}
+    ), insertados as (
+      insert into public.eventos (partido_id, seq, tipo, equipo, valor, creado_en)
+      select a.id, ${desde} + e.n - 1, e.tipo, e.equipo, e.valor, e.en
+        from actualizado a,
+             rows from (jsonb_to_recordset(${nuevos}::jsonb) as (tipo text, equipo text, valor smallint, en timestamptz))
+               with ordinality as e(tipo, equipo, valor, en, n)
     )
     select id from actualizado`;
   return filas.length === 1;

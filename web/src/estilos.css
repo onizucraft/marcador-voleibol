@@ -88,7 +88,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 .partido .meta { display: flex; justify-content: space-between; color: var(--texto-suave); font-size: 0.85rem; }
 .partido .equipo { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.6rem; font-size: 1.05rem; }
 .partido .equipo.ganador { font-weight: 700; }
-.partido .muestra { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--color); }
+.partido .muestra { width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--color); box-shadow: 0 0 0 1px rgb(255 255 255 / 0.35); }
 .partido .equipo-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .partido .sets { font-variant-numeric: tabular-nums; font-weight: 700; }
 .etiqueta-estado { font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 1rem; background: var(--superficie-2); }
@@ -111,6 +111,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 .paleta .color {
   width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--color); cursor: pointer;
   display: block; outline: 3px solid transparent; outline-offset: 2px;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.3);
 }
 .paleta .color:has(input:checked) { outline-color: var(--texto); }
 .paleta .color:has(input:focus-visible) { outline-color: var(--acento); }
@@ -168,30 +169,34 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 .panel {
   position: relative; display: grid; place-items: center; aspect-ratio: 6 / 5;
   container-type: inline-size;
-  background: var(--color); border-radius: 1.5rem; cursor: pointer; user-select: none;
+  background: var(--color); color: var(--texto, #fff); border-radius: 1.5rem; cursor: pointer; user-select: none;
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.12);
   touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   transition: transform 0.08s, filter 0.15s;
 }
 .panel:active:not(.bloqueado) { transform: scale(0.98); }
 .panel:focus-visible { outline: 4px solid var(--texto); outline-offset: 4px; }
 .panel.bloqueado { cursor: default; }
-.panel .puntos { color: #fff; font-size: 40cqi; line-height: 1; }
+.panel .puntos { font-size: 40cqi; line-height: 1; }
 .panel .lado-etiqueta {
-  position: absolute; top: 0.8rem; left: 1rem; color: rgb(255 255 255 / 0.75);
+  position: absolute; top: 0.8rem; left: 1rem; opacity: 0.75;
   font-size: max(0.7rem, 4cqi); text-transform: uppercase; letter-spacing: 0.1em;
 }
-.panel .mas-dos {
-  position: absolute; bottom: 0.8rem; right: 0.8rem; font: inherit; font-weight: 700;
+.panel .mas-dos, .panel .menos-uno {
+  position: absolute; bottom: 0.8rem; font: inherit; font-weight: 700;
   font-size: max(1rem, 6cqi); padding: 0.2em 0.6em; border-radius: 0.75rem; cursor: pointer;
-  color: #fff; background: rgb(0 0 0 / 0.25); border: 2px solid rgb(255 255 255 / 0.6);
+  color: inherit; background: rgb(0 0 0 / 0.18); border: 2px solid currentColor;
 }
-.panel .mas-dos:disabled { opacity: 0.4; cursor: default; }
+.panel .mas-dos { right: 0.8rem; }
+.panel .menos-uno { left: 0.8rem; }
+.panel .mas-dos:disabled, .panel .menos-uno:disabled { opacity: 0.35; cursor: default; }
 
 .centro { display: grid; justify-items: center; gap: 2rem; }
 .sets { display: flex; gap: 1rem; }
 .caja-set {
   display: grid; place-items: center; width: clamp(3rem, 7vw, 5rem); aspect-ratio: 1;
-  background: var(--color); color: #fff; border-radius: 1rem; font-size: clamp(1.5rem, 3.4vw, 2.5rem);
+  background: var(--color); color: var(--texto, #fff); border-radius: 1rem; font-size: clamp(1.5rem, 3.4vw, 2.5rem);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.12);
 }
 .controles { display: grid; grid-template-columns: repeat(4, auto); gap: 0.5rem 1rem; justify-content: center; }
 body:not(.es-admin) .controles { grid-template-columns: repeat(2, auto); }

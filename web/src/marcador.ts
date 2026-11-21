@@ -28,20 +28,23 @@ function pintar(nueva: Vista, nuevoReloj: Reloj) {
     const equipo = v.equipos[lado];
     const nombre = $(`#nombre-${posicion}`);
     nombre.textContent = equipo.nombre;
-    nombre.style.setProperty('--color', equipo.hex);
+    nombre.style.setProperty('--color', equipo.tinta);
 
     const panel = $(`#panel-${posicion}`);
     panel.dataset.lado = lado;
     panel.style.setProperty('--color', equipo.hex);
+    panel.style.setProperty('--texto', equipo.texto);
     panel.classList.toggle('bloqueado', bloqueado);
     panel.setAttribute('aria-label', `Sumar punto a ${equipo.nombre}`);
     panel.querySelector('.lado-etiqueta')!.textContent = lado === 'local' ? 'Local' : 'Visitante';
     panel.querySelector('.puntos')!.textContent = dosCifras(v.puntos[lado]);
     panel.querySelector<HTMLButtonElement>('.mas-dos')!.disabled = bloqueado;
+    panel.querySelector<HTMLButtonElement>('.menos-uno')!.disabled = !admin || v.puntos[lado] === 0;
 
     const sets = $(`#sets-${posicion}`);
     sets.textContent = String(v.sets[lado]);
     sets.style.setProperty('--color', equipo.hex);
+    sets.style.setProperty('--texto', equipo.texto);
   }
 
   const { config } = v;
@@ -82,7 +85,7 @@ function pintarEstado(v: Vista) {
 function pintarParciales(v: Vista) {
   $('#parciales').replaceChildren(...v.parciales.map((p, i) => {
     const item = el('li', {}, `Set ${i + 1}: `, el('strong', {}, `${p.local}-${p.visitante}`));
-    item.style.setProperty('--color', v.equipos[p.ganador].hex);
+    item.style.setProperty('--color', v.equipos[p.ganador].tinta);
     return item;
   }));
 }
@@ -95,7 +98,7 @@ function pintarHistorial(v: Vista) {
       el('span', { class: 'marcador-parcial' }, `${h.puntos.local}-${h.puntos.visitante} (${h.sets.local}-${h.sets.visitante})`),
       el('time', { datetime: h.en }, hora.format(new Date(h.en))),
     );
-    if (h.equipo) item.style.setProperty('--color', v.equipos[h.equipo].hex);
+    if (h.equipo) item.style.setProperty('--color', v.equipos[h.equipo].tinta);
     return item;
   }));
   if (v.historial.length === 0) $('#lista-historial').replaceChildren(el('li', { class: 'vacio' }, 'Todavía no hay jugadas.'));
@@ -164,7 +167,7 @@ async function editarEquipo(lado: Lado) {
   formulario.querySelector('[value="cancelar"]')!.addEventListener('click', () => dialogo.close());
   formulario.addEventListener('submit', () => {
     const datos = new FormData(formulario);
-    accion({ tipo: 'editar_equipo', equipo: lado, nombre: String(datos.get('nombre')), color: String(datos.get('color')) });
+    accion({ tipo: 'editar_equipo', equipo: lado, nombre: String(datos.get('nombre')), color: datos.get('color')?.toString() });
   });
   dialogo.addEventListener('close', () => dialogo.remove());
   dialogo.showModal();
@@ -213,6 +216,10 @@ function conectarControles() {
     panel.querySelector('.mas-dos')!.addEventListener('click', (e) => {
       e.stopPropagation();
       sumar(2);
+    });
+    panel.querySelector('.menos-uno')!.addEventListener('click', (e) => {
+      e.stopPropagation();
+      accion({ tipo: 'quitar_punto', equipo: panel.dataset.lado as Lado });
     });
   }
   for (const boton of document.querySelectorAll<HTMLButtonElement>('[data-accion]')) {
