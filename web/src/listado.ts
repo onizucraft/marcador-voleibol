@@ -17,6 +17,10 @@ interface FilaPartido {
 const formatoFecha = new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 const ETIQUETAS = { programado: 'Previsto', en_juego: 'En juego', finalizado: 'Finalizado' };
 
+/** Fecha de referencia de un partido: cuando empezó o, si aún no, cuando está previsto. */
+const fechaDe = (p: FilaPartido) => p.comenzado_en ?? p.programado_en;
+const masRecientePrimero = (a: FilaPartido, b: FilaPartido) => Date.parse(fechaDe(b)) - Date.parse(fechaDe(a));
+
 function tarjeta(p: FilaPartido) {
   const equipo = (lado: Lado, sets: number) => {
     const fila = el('div', { class: `equipo${p.ganador === lado ? ' ganador' : ''}` },
@@ -29,7 +33,7 @@ function tarjeta(p: FilaPartido) {
   };
   return el('a', { class: 'tarjeta partido', href: `partido.html?id=${p.id}` },
     el('div', { class: 'meta' },
-      el('time', { datetime: p.programado_en, title: 'Fecha y hora previstas' }, formatoFecha.format(new Date(p.programado_en))),
+      el('time', { datetime: fechaDe(p), title: p.comenzado_en ? 'Comienzo' : 'Fecha y hora previstas' }, formatoFecha.format(new Date(fechaDe(p)))),
       el('span', { class: `etiqueta-estado ${p.estado}` }, ETIQUETAS[p.estado]),
     ),
     equipo('local', p.sets_local),
@@ -49,10 +53,11 @@ async function cargar() {
     .limit(200);
   if (error) return avisarError('No se han podido cargar los partidos');
   const partidos = data as FilaPartido[];
-  pintarLista($('#en-juego'), partidos.filter((p) => p.estado === 'en_juego'), 'No hay ningún partido en juego.');
-  // Los próximos, del más cercano al más lejano.
-  pintarLista($('#proximos'), partidos.filter((p) => p.estado === 'programado').reverse(), 'No hay partidos previstos.');
-  pintarLista($('#anteriores'), partidos.filter((p) => p.estado === 'finalizado'), 'Todavía no hay partidos terminados.');
+  // En juego incluye los aún no empezados (etiqueta "Previsto").
+  const enJuego = partidos.filter((p) => p.estado !== 'finalizado').sort(masRecientePrimero);
+  const anteriores = partidos.filter((p) => p.estado === 'finalizado').sort(masRecientePrimero);
+  pintarLista($('#en-juego'), enJuego, 'No hay ningún partido en juego.');
+  pintarLista($('#anteriores'), anteriores, 'Todavía no hay partidos terminados.');
 }
 
 pintarSesion($('#sesion'));
