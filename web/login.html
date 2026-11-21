@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Entrar · Marcador de voleibol</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%8F%90%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./src/estilos.css" />
+  </head>
+  <body>
+    <header class="cabecera">
+      <h1><a href="./">🏐 Marcador de voleibol</a></h1>
+    </header>
+    <main class="contenido estrecho">
+      <form id="formulario" class="tarjeta formulario">
+        <h2>Acceso de administrador</h2>
+        <label>Email <input name="email" type="email" autocomplete="username" required /></label>
+        <label>Contraseña <input name="contrasena" type="password" autocomplete="current-password" required /></label>
+        <button class="boton principal" type="submit">Entrar</button>
+      </form>
+    </main>
+    <script type="module" src="./src/login.ts"></script>
+  </body>
+</html>

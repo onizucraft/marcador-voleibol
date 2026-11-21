@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Marcador de voleibol</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%8F%90%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./src/estilos.css" />
+  </head>
+  <body class="pantalla-marcador">
+    <header class="cabecera compacta">
+      <a href="./" class="enlace">← Partidos</a>
+      <span id="info" class="info"></span>
+      <nav><span id="sesion"></span></nav>
+    </header>
+
+    <main class="marcador" hidden>
+      <div class="cabecera-equipo" id="cabecera-izq">
+        <h2 class="nombre" id="nombre-izq"></h2>
+        <button type="button" class="control solo-admin editar-equipo" data-posicion="izq" title="Cambiar nombre o color" aria-label="Cambiar nombre o color"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+      </div>
+      <div class="zona-reloj">
+        <div class="reloj" id="reloj" aria-label="Tiempo de juego">00:00</div>
+        <button type="button" class="control solo-admin" id="boton-reloj" title="Arrancar el reloj" aria-label="Arrancar el reloj">
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="icono-arrancar"><path d="M8 5v14l11-7z"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true" class="icono-pausar"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+      </div>
+      <div class="cabecera-equipo" id="cabecera-der">
+        <h2 class="nombre" id="nombre-der"></h2>
+        <button type="button" class="control solo-admin editar-equipo" data-posicion="der" title="Cambiar nombre o color" aria-label="Cambiar nombre o color"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+      </div>
+
+      <div class="panel" id="panel-izq" role="button" tabindex="0">
+        <span class="lado-etiqueta"></span>
+        <span class="puntos" aria-live="polite"></span>
+        <button type="button" class="mas-dos solo-admin" title="Sumar dos puntos (tres toques tras recibir)">+2</button>
+      </div>
+
+      <div class="centro">
+        <div class="sets">
+          <span class="caja-set" id="sets-izq"></span>
+          <span class="caja-set" id="sets-der"></span>
+        </div>
+        <div class="controles">
+          <a class="control solo-admin" id="nuevo" title="Nuevo partido" aria-label="Nuevo partido"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></a>
+          <button type="button" class="control solo-admin" data-accion="deshacer" title="Deshacer" aria-label="Deshacer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
+          <button type="button" class="control solo-admin" data-accion="rehacer" title="Rehacer" aria-label="Rehacer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/></svg></button>
+          <button type="button" class="control solo-admin" data-accion="cambio_lado" title="Cambiar de lado" aria-label="Cambiar de lado"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg></button>
+          <button type="button" class="control solo-admin" id="restablecer" title="Restablecer marcador" aria-label="Restablecer marcador"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg></button>
+          <button type="button" class="control" id="ver-historial" title="Historial del partido" aria-label="Historial del partido"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg></button>
+          <button type="button" class="control" id="pantalla-completa" title="Pantalla completa" aria-label="Pantalla completa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg></button>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-der" role="button" tabindex="0">
+        <span class="lado-etiqueta"></span>
+        <span class="puntos" aria-live="polite"></span>
+        <button type="button" class="mas-dos solo-admin" title="Sumar dos puntos (tres toques tras recibir)">+2</button>
+      </div>
+
+      <div class="estado" id="estado" hidden></div>
+      <ol class="parciales" id="parciales"></ol>
+    </main>
+
+    <section class="historial" id="historial" hidden>
+      <h2>Historial del partido</h2>
+      <ol id="lista-historial"></ol>
+    </section>
+
+    <script type="module" src="./src/marcador.ts"></script>
+  </body>
+</html>

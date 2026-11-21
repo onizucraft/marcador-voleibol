@@ -1,0 +1,23 @@
+{
+  "name": "marcador-voleibol",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:red": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "node --test \"supabase/functions/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.2",
+    "dseg": "^0.46.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}

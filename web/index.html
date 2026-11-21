@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Marcador de voleibol</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%8F%90%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./src/estilos.css" />
+  </head>
+  <body>
+    <header class="cabecera">
+      <h1>🏐 Marcador de voleibol</h1>
+      <nav>
+        <a class="boton principal solo-admin" href="nuevo.html">+ Nuevo partido</a>
+        <span id="sesion"></span>
+      </nav>
+    </header>
+    <main class="contenido">
+      <section>
+        <h2>En juego</h2>
+        <div id="en-juego" class="lista-partidos"><p class="vacio">Cargando…</p></div>
+      </section>
+      <section>
+        <h2>Partidos anteriores</h2>
+        <div id="anteriores" class="lista-partidos"></div>
+      </section>
+    </main>
+    <script type="module" src="./src/listado.ts"></script>
+  </body>
+</html>

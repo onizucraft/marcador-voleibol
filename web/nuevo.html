@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nuevo partido · Marcador de voleibol</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%8F%90%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./src/estilos.css" />
+  </head>
+  <body>
+    <header class="cabecera">
+      <h1><a href="./">🏐 Marcador de voleibol</a></h1>
+      <nav><span id="sesion"></span></nav>
+    </header>
+    <main class="contenido estrecho">
+      <form id="formulario" class="tarjeta formulario" hidden>
+        <h2>Nuevo partido</h2>
+
+        <fieldset class="equipo-form" data-lado="local">
+          <legend>Equipo local</legend>
+          <label>Nombre <input name="local-nombre" maxlength="30" placeholder="Local" /></label>
+          <div class="paleta"></div>
+        </fieldset>
+
+        <fieldset class="equipo-form" data-lado="visitante">
+          <legend>Equipo visitante</legend>
+          <label>Nombre <input name="visitante-nombre" maxlength="30" placeholder="Visitante" /></label>
+          <div class="paleta"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Reglas</legend>
+          <div class="rejilla-reglas">
+            <label>Jugadores por equipo <input name="jugadores" type="number" required /></label>
+            <label>Sets para ganar <input name="setsParaGanar" type="number" required /></label>
+            <label>Puntos por set <input name="puntosPorSet" type="number" required /></label>
+            <label>Puntos del set de desempate <input name="puntosUltimoSet" type="number" required /></label>
+          </div>
+          <label class="casilla"><input name="diferenciaDos" type="checkbox" /> Hay que ganar cada set por 2 puntos de diferencia</label>
+        </fieldset>
+
+        <button class="boton principal" type="submit">Empezar partido</button>
+      </form>
+    </main>
+    <script type="module" src="./src/nuevo.ts"></script>
+  </body>
+</html>
