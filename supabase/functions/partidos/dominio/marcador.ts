@@ -92,7 +92,7 @@ export class ErrorDominio extends Error {
 // deno-lint-ignore no-explicit-any
 type Entrada = any;
 
-export function validarNuevoPartido(entrada: Entrada): { config: Config; equipos: Equipos } {
+export function validarNuevoPartido(entrada: Entrada): { config: Config; equipos: Equipos; programadoEn: string } {
   const config = { ...CONFIG_POR_DEFECTO };
   for (const campo of Object.keys(LIMITES) as CampoNumerico[]) {
     const { min, max, etiqueta } = LIMITES[campo];
@@ -111,7 +111,7 @@ export function validarNuevoPartido(entrada: Entrada): { config: Config; equipos
     equipos[lado] = validarEquipo(entrada?.equipos?.[lado], EQUIPOS_POR_DEFECTO[lado]);
   }
   comprobarColoresDistintos(equipos);
-  return { config, equipos };
+  return { config, equipos, programadoEn: validarProgramacion(entrada?.programadoEn) };
 }
 
 /** Lo que no venga (o venga vacío) se toma de `base`. */
@@ -468,10 +468,33 @@ export function relojTrasCambio(reloj: Reloj, vista: Vista, ahora: string): Relo
   return vista.finalizado ? pausar(reloj, ahora) : reloj;
 }
 
+// ---------- Programación: fecha prevista y comienzo real ----------
+
+const PROGRAMACION_MINIMA = Date.parse('2000-01-01T00:00:00Z');
+const PROGRAMACION_MAXIMA = Date.parse('2100-01-01T00:00:00Z');
+
+/** Fecha y hora previstas del partido; obligatorias. Devuelve ISO en UTC. */
+export function validarProgramacion(valor: unknown): string {
+  if (typeof valor !== 'string' || valor.trim() === '') {
+    throw new ErrorDominio('Indica la fecha y hora previstas del partido');
+  }
+  const instante = Date.parse(valor);
+  if (Number.isNaN(instante) || instante < PROGRAMACION_MINIMA || instante >= PROGRAMACION_MAXIMA) {
+    throw new ErrorDominio('La fecha y hora previstas no son válidas');
+  }
+  return new Date(instante).toISOString();
+}
+
+/** El partido comienza con el primer punto o el primer arranque del reloj, y ya no se borra. */
+export function comienzoTras(comenzadoEn: string | null, tipoAccion: string, ahora: string): string | null {
+  if (comenzadoEn) return comenzadoEn;
+  return tipoAccion === 'punto' || tipoAccion === 'iniciar_reloj' ? ahora : null;
+}
+
 /** Columnas desnormalizadas para listar partidos sin cargar la vista entera. */
-export function resumir(vista: Vista) {
+export function resumir(vista: Vista, comenzadoEn: string | null) {
   return {
-    estado: vista.finalizado ? 'finalizado' : 'en_juego',
+    estado: vista.finalizado ? 'finalizado' : comenzadoEn ? 'en_juego' : 'programado',
     setsLocal: vista.sets.local,
     setsVisitante: vista.sets.visitante,
     ganador: vista.ganador,

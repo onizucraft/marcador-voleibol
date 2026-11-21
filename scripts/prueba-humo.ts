@@ -57,7 +57,13 @@ assert.equal(invalido.estado, 400);
 assert.match(invalido.cuerpo.error, /mismo color/);
 paso('validación de partido → 400 con mensaje en español');
 
+const sinFecha = await invocar(admin, '', { equipos: {} });
+assert.equal(sinFecha.estado, 400);
+assert.match(sinFecha.cuerpo.error, /fecha y hora previstas/);
+paso('crear partido sin fecha prevista → 400');
+
 const creado = await invocar(admin, '', {
+  programadoEn: '2026-12-05T17:30:00.000Z',
   equipos: { local: { nombre: 'Prueba humo A', color: 'azul' }, visitante: { nombre: 'Prueba humo B', color: 'naranja' } },
   config: { jugadores: 4, setsParaGanar: 1, puntosPorSet: 5, puntosUltimoSet: 5, diferenciaDos: true },
 });
@@ -66,6 +72,17 @@ const id = creado.cuerpo.id as number;
 paso(`partido creado (id ${id})`);
 
 const accion = (cuerpo: object) => invocar(admin, `/${id}/acciones`, cuerpo);
+const programacionDe = async () =>
+  (await publico.from('partidos').select('estado, programado_en, comenzado_en').eq('id', id).single()).data!;
+
+let f = await programacionDe();
+assert.equal(f.estado, 'programado');
+assert.equal(new Date(f.programado_en).toISOString(), '2026-12-05T17:30:00.000Z');
+assert.equal(f.comenzado_en, null);
+const reprogramado = await accion({ tipo: 'editar_programacion', programadoEn: '2026-12-06T10:00:00.000Z' });
+assert.equal(reprogramado.cuerpo.programadoEn, '2026-12-06T10:00:00.000Z');
+assert.equal((await accion({ tipo: 'editar_programacion', programadoEn: 'pasado mañana' })).estado, 400);
+paso('nace como programado y la fecha prevista se puede editar');
 
 let r = await accion({ tipo: 'iniciar_reloj' });
 assert.ok(r.cuerpo.reloj.iniciadoEn);
@@ -76,6 +93,13 @@ assert.equal(r.cuerpo.reloj.iniciadoEn, null);
 assert.ok(r.cuerpo.reloj.acumuladoMs >= 300);
 r = await accion({ tipo: 'iniciar_reloj' });
 paso('reloj: arrancar, pausar y acumular');
+
+f = await programacionDe();
+assert.equal(f.estado, 'en_juego');
+assert.ok(f.comenzado_en, 'el primer arranque del reloj marca el comienzo');
+assert.notEqual(new Date(f.comenzado_en).toISOString(), new Date(f.programado_en).toISOString());
+const comienzo = f.comenzado_en;
+paso('el comienzo real se registra solo y es distinto de la hora prevista');
 
 r = await accion({ tipo: 'punto', equipo: 'local' });
 assert.equal(r.cuerpo.vista.puntos.local, 1);
@@ -128,6 +152,7 @@ assert.equal(r.cuerpo.vista.puedeRehacer, false);
 r = await accion({ tipo: 'punto', equipo: 'visitante' });
 assert.deepEqual(r.cuerpo.vista.puntos, { local: 2, visitante: 3 });
 paso('restar un punto corrige el histórico sin dejar rastro');
+assert.equal((await programacionDe()).comenzado_en, comienzo, 'el comienzo no cambia con más jugadas');
 
 await accion({ tipo: 'punto', equipo: 'visitante' });
 r = await accion({ tipo: 'punto', equipo: 'visitante' });

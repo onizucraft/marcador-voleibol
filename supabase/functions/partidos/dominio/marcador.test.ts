@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {
   accionDeReloj,
   CONFIG_POR_DEFECTO,
+  comienzoTras,
+  resumir,
+  validarProgramacion,
   editarEquipo,
   RELOJ_INICIAL,
   relojTrasCambio,
@@ -16,7 +19,7 @@ import {
 const AHORA = '2026-11-21T10:00:00.000Z';
 
 function nuevoPartido(config: Partial<Config> = {}): PartidoGuardado {
-  const { equipos } = validarNuevoPartido({});
+  const { equipos } = validarNuevoPartido({ programadoEn: AHORA });
   return { config: { ...CONFIG_POR_DEFECTO, ...config }, equipos, cursor: 0, eventos: [] };
 }
 
@@ -131,17 +134,19 @@ test('cambio de lado manual', () => {
 });
 
 test('validación de un partido nuevo', () => {
-  const { config, equipos } = validarNuevoPartido({
+  const { config, equipos, programadoEn } = validarNuevoPartido({
     equipos: { local: { nombre: ' Galapagar A ', color: 'verde' } },
     config: { setsParaGanar: 2 },
+    programadoEn: '2026-11-22T10:00:00+01:00',
   });
+  assert.equal(programadoEn, '2026-11-22T09:00:00.000Z');
   assert.equal(equipos.local.nombre, 'Galapagar A');
   assert.equal(equipos.local.hex, '#2e7d32');
   assert.equal(config.setsParaGanar, 2);
   assert.equal(config.puntosUltimoSet, 15);
-  assert.throws(() => validarNuevoPartido({ equipos: { local: { color: 'azul' } } }), /mismo color/);
-  assert.throws(() => validarNuevoPartido({ config: { puntosPorSet: 0 } }), /Puntos por set/);
-  assert.throws(() => validarNuevoPartido({ equipos: { local: { color: 'fucsia' } } }), /Color no válido/);
+  assert.throws(() => validarNuevoPartido({ programadoEn: AHORA, equipos: { local: { color: 'azul' } } }), /mismo color/);
+  assert.throws(() => validarNuevoPartido({ programadoEn: AHORA, config: { puntosPorSet: 0 } }), /Puntos por set/);
+  assert.throws(() => validarNuevoPartido({ programadoEn: AHORA, equipos: { local: { color: 'fucsia' } } }), /Color no válido/);
 });
 
 test('acciones no válidas', () => {
@@ -245,4 +250,28 @@ test('la vista usa la paleta actual y respeta colores antiguos', () => {
   assert.equal(vista.equipos.local.texto, '#ffffff');
   assert.equal(vista.equipos.visitante.tinta, '#5c8dff');
   assert.equal(editarEquipo(partido, { equipo: 'local', nombre: 'Nuevo' }).equipos.local.color, 'indigo');
+});
+
+test('la fecha y hora previstas son obligatorias y se validan', () => {
+  assert.throws(() => validarNuevoPartido({}), /fecha y hora previstas del partido/);
+  assert.throws(() => validarProgramacion(''), /fecha y hora previstas del partido/);
+  assert.throws(() => validarProgramacion('mañana'), /no son válidas/);
+  assert.throws(() => validarProgramacion('1999-12-31T10:00:00Z'), /no son válidas/);
+  assert.equal(validarProgramacion('2026-12-01T18:30:00.000Z'), '2026-12-01T18:30:00.000Z');
+});
+
+test('el comienzo real llega con el primer punto o el primer arranque del reloj, y no se pierde', () => {
+  assert.equal(comienzoTras(null, 'cambio_lado', AHORA), null);
+  assert.equal(comienzoTras(null, 'editar_equipo', AHORA), null);
+  assert.equal(comienzoTras(null, 'punto', AHORA), AHORA);
+  assert.equal(comienzoTras(null, 'iniciar_reloj', AHORA), AHORA);
+  assert.equal(comienzoTras('2026-11-21T09:00:00.000Z', 'punto', AHORA), '2026-11-21T09:00:00.000Z');
+});
+
+test('estado del listado: programado, en juego o finalizado', () => {
+  const { vista } = jugar(nuevoPartido({ setsParaGanar: 1, puntosPorSet: 1 }), { tipo: 'cambio_lado' });
+  assert.equal(resumir(vista, null).estado, 'programado');
+  assert.equal(resumir(vista, AHORA).estado, 'en_juego');
+  const fin = jugar(nuevoPartido({ setsParaGanar: 1, puntosPorSet: 2, diferenciaDos: false }), ...puntos('local', 2), { tipo: 'confirmar' });
+  assert.equal(resumir(fin.vista, AHORA).estado, 'finalizado');
 });

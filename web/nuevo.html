@@ -24,6 +24,11 @@
       <form id="formulario" class="tarjeta formulario" hidden>
         <h2>Nuevo partido</h2>
 
+        <fieldset>
+          <legend>Cuándo</legend>
+          <label>Fecha y hora previstas <input name="programadoEn" type="datetime-local" required /></label>
+        </fieldset>
+
         <fieldset class="equipo-form" data-lado="local">
           <legend>Equipo local</legend>
           <label>Nombre <input name="local-nombre" maxlength="30" placeholder="Local" /></label>

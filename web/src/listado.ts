@@ -5,15 +5,17 @@ import type { Equipos, Lado } from '../../supabase/functions/partidos/dominio/ma
 
 interface FilaPartido {
   id: number;
-  creado_en: string;
+  programado_en: string;
+  comenzado_en: string | null;
   equipos: Equipos;
-  estado: 'en_juego' | 'finalizado';
+  estado: 'programado' | 'en_juego' | 'finalizado';
   sets_local: number;
   sets_visitante: number;
   ganador: Lado | null;
 }
 
-const formatoFecha = new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+const formatoFecha = new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const ETIQUETAS = { programado: 'Previsto', en_juego: 'En juego', finalizado: 'Finalizado' };
 
 function tarjeta(p: FilaPartido) {
   const equipo = (lado: Lado, sets: number) => {
@@ -27,8 +29,8 @@ function tarjeta(p: FilaPartido) {
   };
   return el('a', { class: 'tarjeta partido', href: `partido.html?id=${p.id}` },
     el('div', { class: 'meta' },
-      el('time', { datetime: p.creado_en }, formatoFecha.format(new Date(p.creado_en))),
-      el('span', { class: `etiqueta-estado ${p.estado}` }, p.estado === 'en_juego' ? 'En juego' : 'Finalizado'),
+      el('time', { datetime: p.programado_en, title: 'Fecha y hora previstas' }, formatoFecha.format(new Date(p.programado_en))),
+      el('span', { class: `etiqueta-estado ${p.estado}` }, ETIQUETAS[p.estado]),
     ),
     equipo('local', p.sets_local),
     equipo('visitante', p.sets_visitante),
@@ -42,12 +44,14 @@ function pintarLista(contenedor: HTMLElement, partidos: FilaPartido[], vacio: st
 async function cargar() {
   const { data, error } = await supabase
     .from('partidos')
-    .select('id, creado_en, equipos, estado, sets_local, sets_visitante, ganador')
-    .order('creado_en', { ascending: false })
+    .select('id, programado_en, comenzado_en, equipos, estado, sets_local, sets_visitante, ganador')
+    .order('programado_en', { ascending: false })
     .limit(200);
   if (error) return avisarError('No se han podido cargar los partidos');
   const partidos = data as FilaPartido[];
   pintarLista($('#en-juego'), partidos.filter((p) => p.estado === 'en_juego'), 'No hay ningún partido en juego.');
+  // Los próximos, del más cercano al más lejano.
+  pintarLista($('#proximos'), partidos.filter((p) => p.estado === 'programado').reverse(), 'No hay partidos previstos.');
   pintarLista($('#anteriores'), partidos.filter((p) => p.estado === 'finalizado'), 'Todavía no hay partidos terminados.');
 }
 

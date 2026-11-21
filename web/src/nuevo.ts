@@ -49,6 +49,8 @@ formulario.addEventListener('submit', async (evento) => {
           nombre: datos.get(`${lado}-nombre`),
           color: datos.get(`${lado}-color`),
         }])),
+        // datetime-local es hora local del dispositivo; al servidor va como instante UTC.
+        programadoEn: datos.get('programadoEn') ? new Date(String(datos.get('programadoEn'))).toISOString() : null,
         config: {
           jugadores: numero('jugadores'),
           setsParaGanar: numero('setsParaGanar'),

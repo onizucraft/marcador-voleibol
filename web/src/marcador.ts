@@ -10,6 +10,15 @@ import type { Lado, Reloj, Vista } from '../../supabase/functions/partidos/domin
 const id = Number(new URLSearchParams(location.search).get('id'));
 let vista: Vista | null = null;
 let reloj: Reloj = { acumuladoMs: 0, iniciadoEn: null };
+let programacion: Programacion = { programadoEn: '', comenzadoEn: null };
+// Versión del partido que se está mostrando. Los avisos de Realtime y las respuestas pueden
+// llegar desordenados; nunca se pinta algo más viejo que lo que ya hay en pantalla.
+let versionMostrada = -1;
+
+interface Programacion {
+  programadoEn: string;
+  comenzadoEn: string | null;
+}
 let admin = false;
 let dialogoPendiente: { clave: number; cerrar: () => void } | null = null;
 let cola: Promise<unknown> = Promise.resolve();
@@ -17,10 +26,15 @@ let cola: Promise<unknown> = Promise.resolve();
 const nombreDe = (lado: Lado) => vista!.equipos[lado].nombre;
 const dosCifras = (n: number) => String(n).padStart(2, '0');
 const hora = new Intl.DateTimeFormat('es-ES', { timeStyle: 'medium' });
+const fechaPrevista = new Intl.DateTimeFormat('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const horaCorta = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-function pintar(nueva: Vista, nuevoReloj: Reloj) {
+function pintar(version: number, nueva: Vista, nuevoReloj: Reloj, nuevaProgramacion: Programacion) {
+  if (version < versionMostrada) return;
+  versionMostrada = version;
   vista = nueva;
   reloj = nuevoReloj;
+  programacion = nuevaProgramacion;
   const v = nueva;
   const bloqueado = !admin || v.finalizado || v.pendiente !== null;
 
@@ -59,12 +73,53 @@ function pintar(nueva: Vista, nuevoReloj: Reloj) {
   $<HTMLButtonElement>('[data-accion="rehacer"]').disabled = !v.puedeRehacer;
   $<HTMLAnchorElement>('#nuevo').href = `nuevo.html?desde=${id}`;
 
+  pintarProgramacion();
   pintarEstado(v);
   pintarParciales(v);
   pintarHistorial(v);
   pintarReloj();
   avisarFinDeSet(v);
   $('.marcador').hidden = false;
+}
+
+function pintarProgramacion() {
+  const partes = [`Previsto: ${fechaPrevista.format(new Date(programacion.programadoEn))}`];
+  if (programacion.comenzadoEn) partes.push(`Comenzó: ${horaCorta.format(new Date(programacion.comenzadoEn))}`);
+  $('#programacion').textContent = partes.join(' · ');
+}
+
+/** Valor para <input type="datetime-local"> en la hora local del dispositivo. */
+function aLocal(iso: string) {
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
+function editarProgramacion() {
+  const campo = el('input', { type: 'datetime-local', name: 'programadoEn', required: true });
+  campo.value = aLocal(programacion.programadoEn);
+  const formulario = el('form', { method: 'dialog', class: 'formulario' },
+    el('h2', {}, 'Fecha y hora previstas'),
+    el('label', {}, 'Cuándo está previsto el partido', campo),
+    el('div', { class: 'botones' },
+      el('button', { type: 'button', class: 'boton', value: 'cancelar' }, 'Cancelar'),
+      el('button', { type: 'submit', class: 'boton principal' }, 'Guardar'),
+    ),
+  );
+  const dialogo = el('dialog', { class: 'dialogo' }, formulario);
+  document.body.append(dialogo);
+  formulario.querySelector('[value="cancelar"]')!.addEventListener('click', () => dialogo.close());
+  formulario.addEventListener('submit', () => {
+    accion({ tipo: 'editar_programacion', programadoEn: new Date(campo.value).toISOString() });
+  });
+  dialogo.addEventListener('close', () => dialogo.remove());
+  dialogo.showModal();
+}
+
+/** Pantalla completa: solo nombres, puntos, sets y reloj, sin controles ni scroll. */
+function alternarPresentacion(activar = !document.body.classList.contains('presentacion')) {
+  document.body.classList.toggle('presentacion', activar);
+  if (activar) document.documentElement.requestFullscreen?.().catch(() => {});
+  else if (document.fullscreenElement) document.exitFullscreen();
 }
 
 function pintarEstado(v: Vista) {
@@ -175,11 +230,11 @@ async function editarEquipo(lado: Lado) {
 }
 
 /** Las acciones se envían en orden, una detrás de otra. */
-function accion(datos: { tipo: string; equipo?: Lado; valor?: number; nombre?: string; color?: string }) {
+function accion(datos: { tipo: string; equipo?: Lado; valor?: number; nombre?: string; color?: string; programadoEn?: string }) {
   cola = cola.then(async () => {
     try {
-      const respuesta = await llamar<{ vista: Vista; reloj: Reloj }>(`/${id}/acciones`, { cuerpo: datos });
-      pintar(respuesta.vista, respuesta.reloj);
+      const respuesta = await llamar<{ version: number; vista: Vista; reloj: Reloj } & Programacion>(`/${id}/acciones`, { cuerpo: datos });
+      pintar(respuesta.version, respuesta.vista, respuesta.reloj, respuesta);
     } catch (error) {
       if (error instanceof ErrorSesion) {
         location.href = `login.html?volver=${encodeURIComponent(`partido.html?id=${id}`)}`;
@@ -191,13 +246,17 @@ function accion(datos: { tipo: string; equipo?: Lado; valor?: number; nombre?: s
 }
 
 async function cargar() {
-  const { data, error } = await supabase.from('partidos').select('vista, reloj').eq('id', id).maybeSingle();
+  const { data, error } = await supabase
+    .from('partidos')
+    .select('version, vista, reloj, programado_en, comenzado_en')
+    .eq('id', id)
+    .maybeSingle();
   if (error) return avisarError('No se ha podido cargar el partido');
   if (!data) {
     document.body.replaceChildren(el('main', { class: 'contenido' }, el('p', {}, 'Este partido no existe. '), el('a', { href: './' }, 'Ver partidos')));
     return;
   }
-  pintar(data.vista as Vista, data.reloj as Reloj);
+  pintar(data.version, data.vista as Vista, data.reloj as Reloj, { programadoEn: data.programado_en, comenzadoEn: data.comenzado_en });
 }
 
 function conectarControles() {
@@ -246,10 +305,16 @@ function conectarControles() {
     historial.hidden = !historial.hidden;
     if (!historial.hidden) historial.scrollIntoView({ behavior: 'smooth' });
   });
-  $('#pantalla-completa').addEventListener('click', () => {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else document.documentElement.requestFullscreen().catch(() => avisarError('El navegador no permite pantalla completa'));
+  $('#editar-programacion').addEventListener('click', editarProgramacion);
+  $('#pantalla-completa').addEventListener('click', () => alternarPresentacion(true));
+  // Salir: Esc, el gesto de salir de pantalla completa del navegador o doble toque en el reloj.
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) alternarPresentacion(false);
   });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') alternarPresentacion(false);
+  });
+  $('#reloj').addEventListener('dblclick', () => alternarPresentacion(false));
 }
 
 async function iniciar() {
@@ -265,9 +330,12 @@ async function iniciar() {
   supabase
     .channel(`partido-${id}`)
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'partidos', filter: `id=eq.${id}` }, (cambio) => {
-      const fila = cambio.new as { vista?: Vista; reloj?: Reloj };
-      if (fila.vista && fila.reloj) pintar(fila.vista, fila.reloj);
-      else cargar();
+      const fila = cambio.new as {
+        version?: number; vista?: Vista; reloj?: Reloj; programado_en?: string; comenzado_en?: string | null;
+      };
+      if (fila.version !== undefined && fila.vista && fila.reloj && fila.programado_en) {
+        pintar(fila.version, fila.vista, fila.reloj, { programadoEn: fila.programado_en, comenzadoEn: fila.comenzado_en ?? null });
+      } else cargar();
     })
     .subscribe((estado) => {
       if (estado === 'SUBSCRIBED') cargar();

@@ -45,6 +45,9 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 .cabecera nav { display: flex; align-items: center; gap: 1rem; }
 .cabecera.compacta { padding: 0.5rem 1rem; background: transparent; }
 .cabecera .info { color: var(--texto-suave); font-size: 0.9rem; text-align: center; }
+.centro-cabecera { display: grid; justify-items: center; gap: 0.1rem; }
+.programacion { display: flex; align-items: center; gap: 0.2rem; color: var(--texto-suave); font-size: 0.85rem; }
+.programacion .control { font-size: 1.1rem; }
 
 .contenido { max-width: 60rem; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; display: grid; gap: 2rem; }
 .contenido.estrecho { max-width: 34rem; }
@@ -93,6 +96,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 .partido .sets { font-variant-numeric: tabular-nums; font-weight: 700; }
 .etiqueta-estado { font-size: 0.75rem; padding: 0.1rem 0.5rem; border-radius: 1rem; background: var(--superficie-2); }
 .etiqueta-estado.en_juego { background: #2e7d32; color: #fff; }
+.etiqueta-estado.programado { background: var(--marino); color: #c9d3e3; }
 
 /* ---------- Formularios ---------- */
 
@@ -248,4 +252,39 @@ body:not(.es-admin) .controles { grid-template-columns: repeat(2, auto); }
   .controles { grid-template-columns: repeat(4, auto); }
   .historial li { grid-template-columns: 1fr auto; }
   .historial .set, .historial time { display: none; }
+}
+
+/* ---------- Pantalla completa: solo marcador, sets y tiempo ---------- */
+
+body.presentacion { overflow: hidden; }
+body.presentacion :is(.cabecera, .controles, .estado, .parciales, .historial, .editar-equipo,
+  #boton-reloj, .mas-dos, .menos-uno, .lado-etiqueta) { display: none !important; }
+body.presentacion .marcador {
+  max-width: none; height: 100dvh; padding: 2vh 2vw; gap: 2vh 2vw; align-items: stretch;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'nombre-izq reloj  nombre-der'
+    'panel-izq  centro panel-der';
+}
+body.presentacion .panel { aspect-ratio: auto; container-type: size; }
+body.presentacion .panel .puntos { font-size: min(62cqh, 40cqw); }
+body.presentacion .marcador .nombre { font-size: clamp(1.5rem, 6vh, 4.5rem); }
+body.presentacion .reloj { font-size: clamp(1.5rem, 7vh, 5rem); cursor: default; }
+body.presentacion .centro { align-self: center; }
+body.presentacion .caja-set { width: clamp(4rem, 14vh, 10rem); font-size: clamp(2rem, 9vh, 6rem); }
+
+@media (orientation: portrait) {
+  body.presentacion .marcador {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'reloj      reloj'
+      'nombre-izq nombre-der'
+      'panel-izq  panel-der'
+      'centro     centro';
+  }
+  body.presentacion .panel .puntos { font-size: min(45cqh, 40cqw); }
+  body.presentacion .marcador .nombre { font-size: min(6.5vw, 5vh); }
+  body.presentacion .caja-set { width: clamp(3.5rem, 9vh, 7rem); font-size: clamp(2rem, 6vh, 4rem); }
 }

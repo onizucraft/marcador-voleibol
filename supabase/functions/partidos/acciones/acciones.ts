@@ -2,10 +2,12 @@ import type { PostgresApi } from '@supabase/server/middleware/postgres-admin';
 import {
   ACCIONES_RELOJ,
   accionDeReloj,
+  comienzoTras,
   editarEquipo,
   relojTrasCambio,
   resolverAccion,
   resumir,
+  validarProgramacion,
   type Cambio,
   type Equipos,
   type Evento,
@@ -19,8 +21,8 @@ const REINTENTOS = 3;
 
 /**
  * POST /partidos/:id/acciones — punto, +2, confirmar, cambio de lado, restablecer,
- * deshacer, rehacer, iniciar y pausar el reloj, y editar nombre/color de un equipo.
- * Solo administrador.
+ * deshacer, rehacer, quitar punto, iniciar y pausar el reloj, editar nombre/color de un
+ * equipo y cambiar la fecha y hora previstas. Solo administrador.
  *
  * Lee el partido, resuelve la acción en el dominio y guarda con control optimista
  * (columna `version`). Si otro administrador ha escrito entre medias, reintenta
@@ -32,38 +34,69 @@ export async function ejecutarAccion(req: Request, db: PostgresApi, id: number):
     const partido = await cargar(db, id);
     if (!partido) throw new ErrorHttp(404, 'Partido no encontrado');
     const ahora = new Date().toISOString();
+    const tipo = accion?.tipo ?? '';
+    const comenzadoEn = comienzoTras(partido.comenzadoEn, tipo, ahora);
+    const respuesta = (cambios: Partial<Respuesta>) =>
+      Response.json({
+        id,
+        // Versión que acaba de quedar guardada: el cliente descarta avisos de Realtime más viejos.
+        version: partido.version + 1,
+        vista: partido.vista,
+        reloj: partido.reloj,
+        programadoEn: partido.programadoEn,
+        comenzadoEn,
+        ...cambios,
+      });
 
-    if (ACCIONES_RELOJ.includes(accion?.tipo ?? '')) {
-      const reloj = accionDeReloj(partido.reloj, accion!.tipo!, ahora, partido.vista.finalizado);
-      if (await guardarReloj(db, id, partido.version, reloj)) {
-        return Response.json({ id, vista: partido.vista, reloj });
-      }
+    if (ACCIONES_RELOJ.includes(tipo)) {
+      const reloj = accionDeReloj(partido.reloj, tipo, ahora, partido.vista.finalizado);
+      const { estado } = resumir(partido.vista, comenzadoEn);
+      if (await guardarReloj(db, id, partido.version, reloj, comenzadoEn, estado)) return respuesta({ reloj });
       continue;
     }
 
-    if (accion?.tipo === 'editar_equipo') {
+    if (tipo === 'editar_equipo') {
       const { equipos, vista } = editarEquipo(partido, accion);
-      if (await guardarEquipos(db, id, partido.version, equipos, vista)) {
-        return Response.json({ id, vista, reloj: partido.reloj });
-      }
+      if (await guardarEquipos(db, id, partido.version, equipos, vista)) return respuesta({ vista });
+      continue;
+    }
+
+    if (tipo === 'editar_programacion') {
+      const programadoEn = validarProgramacion((accion as { programadoEn?: unknown }).programadoEn);
+      if (await guardarProgramacion(db, id, partido.version, programadoEn)) return respuesta({ programadoEn });
       continue;
     }
 
     const cambio = resolverAccion(partido, accion, ahora);
     const reloj = relojTrasCambio(partido.reloj, cambio.vista, ahora);
-    if (await guardar(db, id, partido.version, cambio, reloj)) {
-      return Response.json({ id, vista: cambio.vista, reloj });
+    if (await guardar(db, id, partido.version, cambio, reloj, comenzadoEn)) {
+      return respuesta({ vista: cambio.vista, reloj });
     }
   }
   throw new ErrorHttp(409, 'El marcador ha cambiado mientras se guardaba; vuelve a intentarlo');
 }
 
-type PartidoCargado = PartidoGuardado & { version: number; reloj: Reloj; vista: Vista };
+interface Respuesta {
+  vista: Vista;
+  reloj: Reloj;
+  programadoEn: string;
+  comenzadoEn: string | null;
+}
+
+type PartidoCargado = PartidoGuardado & {
+  version: number;
+  reloj: Reloj;
+  vista: Vista;
+  programadoEn: string;
+  comenzadoEn: string | null;
+};
 
 async function cargar(db: PostgresApi, id: number): Promise<PartidoCargado | null> {
   // Una sola consulta: partido y eventos salen de la misma instantánea.
   const [fila]: (Omit<PartidoCargado, 'eventos'> & { eventos: Evento[] })[] = await db.query`
     select p.config, p.equipos, p.cursor, p.version, p.reloj, p.vista,
+           to_json(p.programado_en) #>> '{}' as "programadoEn",
+           to_json(p.comenzado_en) #>> '{}' as "comenzadoEn",
            coalesce((
              select json_agg(json_build_object(
                       'tipo', e.tipo, 'equipo', e.equipo, 'valor', e.valor, 'en', e.creado_en
@@ -74,12 +107,30 @@ async function cargar(db: PostgresApi, id: number): Promise<PartidoCargado | nul
     from public.partidos p
     where p.id = ${id}`;
   if (!fila) return null;
-  return { ...fila, eventos: fila.eventos.map((e) => ({ ...e, en: new Date(e.en).toISOString() })) };
+  const iso = (valor: string | null) => (valor ? new Date(valor).toISOString() : null);
+  return {
+    ...fila,
+    programadoEn: iso(fila.programadoEn)!,
+    comenzadoEn: iso(fila.comenzadoEn),
+    eventos: fila.eventos.map((e) => ({ ...e, en: iso(e.en)! })),
+  };
 }
 
-async function guardarReloj(db: PostgresApi, id: number, version: number, reloj: Reloj): Promise<boolean> {
+async function guardarReloj(
+  db: PostgresApi, id: number, version: number, reloj: Reloj, comenzadoEn: string | null, estado: string,
+): Promise<boolean> {
   const filas = await db.query`
-    update public.partidos set reloj = ${JSON.stringify(reloj)}::jsonb, version = version + 1
+    update public.partidos
+       set reloj = ${JSON.stringify(reloj)}::jsonb, comenzado_en = ${comenzadoEn}::timestamptz, estado = ${estado},
+           version = version + 1
+     where id = ${id} and version = ${version}
+    returning id`;
+  return filas.length === 1;
+}
+
+async function guardarProgramacion(db: PostgresApi, id: number, version: number, programadoEn: string) {
+  const filas = await db.query`
+    update public.partidos set programado_en = ${programadoEn}::timestamptz, version = version + 1
      where id = ${id} and version = ${version}
     returning id`;
   return filas.length === 1;
@@ -99,8 +150,10 @@ async function guardarEquipos(db: PostgresApi, id: number, version: number, equi
  * Los eventos se sustituyen desde la posición `desde`: un punto nuevo reescribe solo esa
  * posición; una corrección del histórico reescribe desde el punto corregido en adelante.
  */
-async function guardar(db: PostgresApi, id: number, version: number, cambio: Cambio, reloj: Reloj): Promise<boolean> {
-  const r = resumir(cambio.vista);
+async function guardar(
+  db: PostgresApi, id: number, version: number, cambio: Cambio, reloj: Reloj, comenzadoEn: string | null,
+): Promise<boolean> {
+  const r = resumir(cambio.vista, comenzadoEn);
   const vista = JSON.stringify(cambio.vista);
   const relojJson = JSON.stringify(reloj);
 
@@ -108,7 +161,7 @@ async function guardar(db: PostgresApi, id: number, version: number, cambio: Cam
     const filas = await db.query`
       update public.partidos
          set cursor = ${cambio.cursor}, total = ${cambio.total}, version = version + 1,
-             vista = ${vista}::jsonb, reloj = ${relojJson}::jsonb,
+             vista = ${vista}::jsonb, reloj = ${relojJson}::jsonb, comenzado_en = ${comenzadoEn}::timestamptz,
              estado = ${r.estado}, sets_local = ${r.setsLocal}, sets_visitante = ${r.setsVisitante}, ganador = ${r.ganador}
        where id = ${id} and version = ${version}
       returning id`;
@@ -123,7 +176,7 @@ async function guardar(db: PostgresApi, id: number, version: number, cambio: Cam
     with actualizado as (
       update public.partidos
          set cursor = ${cambio.cursor}, total = ${cambio.total}, version = version + 1,
-             vista = ${vista}::jsonb, reloj = ${relojJson}::jsonb,
+             vista = ${vista}::jsonb, reloj = ${relojJson}::jsonb, comenzado_en = ${comenzadoEn}::timestamptz,
              estado = ${r.estado}, sets_local = ${r.setsLocal}, sets_visitante = ${r.setsVisitante}, ganador = ${r.ganador}
        where id = ${id} and version = ${version}
       returning id
