@@ -283,7 +283,8 @@ body.es-admin .panel :is(.menos-uno, .mas-dos):not(:disabled):active { backgroun
 
 body.presentacion { overflow: hidden; }
 body.presentacion :is(.cabecera, .controles, .resumen, .estado, .parciales, .historial, .editar-equipo,
-  #boton-reloj, .mas-dos, .menos-uno, .lado-etiqueta) { display: none !important; }
+  #boton-reloj, .lado-etiqueta) { display: none !important; }
+/* −1 y +2 son solo del admin (.solo-admin): en pantalla completa el admin sigue anotando. */
 body.presentacion .marcador {
   max-width: none; height: 100dvh; padding: 2vh 2vw; gap: 2vh 2vw; align-items: stretch;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -294,7 +295,8 @@ body.presentacion .marcador {
 }
 body.presentacion .panel { aspect-ratio: auto; container-type: size; }
 body.presentacion .panel .puntos { font-size: min(62cqh, 40cqw); }
-body.presentacion .panel { grid-template-rows: minmax(0, 1fr); }
+body.presentacion.es-admin .panel .puntos { font-size: min(46cqh, 36cqw); }
+body.presentacion.es-admin .panel :is(.menos-uno, .mas-dos) { font-size: max(1.3rem, min(9cqh, 7cqw)); padding: 0.5em 0; min-height: 2.75rem; }
 body.presentacion .marcador .nombre { font-size: clamp(1.5rem, 6vh, 4.5rem); }
 body.presentacion .reloj { font-size: clamp(1.5rem, 7vh, 5rem); cursor: default; }
 body.presentacion .centro { align-self: center; }
