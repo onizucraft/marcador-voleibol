@@ -522,14 +522,31 @@ const PROGRAMACION_MAXIMA = Date.parse('2100-01-01T00:00:00Z');
 
 /** Fecha y hora previstas del partido; obligatorias. Devuelve ISO en UTC. */
 export function validarProgramacion(valor: unknown): string {
-  if (typeof valor !== 'string' || valor.trim() === '') {
-    throw new ErrorDominio('Indica la fecha y hora previstas del partido');
-  }
+  return validarInstante(valor, 'Indica la fecha y hora previstas del partido', 'La fecha y hora previstas no son válidas');
+}
+
+function validarInstante(valor: unknown, siFalta: string, siInvalido: string): string {
+  if (typeof valor !== 'string' || valor.trim() === '') throw new ErrorDominio(siFalta);
   const instante = Date.parse(valor);
   if (Number.isNaN(instante) || instante < PROGRAMACION_MINIMA || instante >= PROGRAMACION_MAXIMA) {
-    throw new ErrorDominio('La fecha y hora previstas no son válidas');
+    throw new ErrorDominio(siInvalido);
   }
   return new Date(instante).toISOString();
+}
+
+/**
+ * Corrección de fechas por el admin: la prevista siempre; el comienzo real solo si el
+ * partido ya ha comenzado (si no, aún no hay comienzo que corregir).
+ */
+export function validarCambioDeFechas(
+  entrada: Entrada,
+  actual: { programadoEn: string; comenzadoEn: string | null },
+): { programadoEn: string; comenzadoEn: string | null } {
+  const programadoEn = entrada?.programadoEn === undefined ? actual.programadoEn : validarProgramacion(entrada.programadoEn);
+  if (entrada?.comenzadoEn === undefined) return { programadoEn, comenzadoEn: actual.comenzadoEn };
+  if (!actual.comenzadoEn) throw new ErrorDominio('El partido aún no ha comenzado', 'conflicto');
+  const comenzadoEn = validarInstante(entrada.comenzadoEn, 'Indica la fecha y hora de comienzo', 'La fecha y hora de comienzo no son válidas');
+  return { programadoEn, comenzadoEn };
 }
 
 /** El partido comienza con el primer punto o el primer arranque del reloj, y ya no se borra. */

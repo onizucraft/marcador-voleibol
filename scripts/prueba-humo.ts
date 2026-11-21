@@ -82,6 +82,7 @@ assert.equal(f.comenzado_en, null);
 const reprogramado = await accion({ tipo: 'editar_programacion', programadoEn: '2026-12-06T10:00:00.000Z' });
 assert.equal(reprogramado.cuerpo.programadoEn, '2026-12-06T10:00:00.000Z');
 assert.equal((await accion({ tipo: 'editar_programacion', programadoEn: 'pasado mañana' })).estado, 400);
+assert.equal((await accion({ tipo: 'editar_programacion', comenzadoEn: '2026-12-06T10:05:00.000Z' })).estado, 409);
 paso('nace como programado y la fecha prevista se puede editar');
 
 let r = await accion({ tipo: 'iniciar_reloj' });
@@ -153,6 +154,11 @@ r = await accion({ tipo: 'punto', equipo: 'visitante' });
 assert.deepEqual(r.cuerpo.vista.puntos, { local: 2, visitante: 3 });
 paso('restar un punto corrige el histórico sin dejar rastro');
 assert.equal((await programacionDe()).comenzado_en, comienzo, 'el comienzo no cambia con más jugadas');
+const corregido = await accion({ tipo: 'editar_programacion', comenzadoEn: '2026-12-06T10:07:00.000Z' });
+assert.equal(corregido.cuerpo.comenzadoEn, '2026-12-06T10:07:00.000Z');
+assert.equal(new Date((await programacionDe()).comenzado_en).toISOString(), '2026-12-06T10:07:00.000Z');
+assert.equal(new Date((await programacionDe()).programado_en).toISOString(), '2026-12-06T10:00:00.000Z');
+paso('el comienzo real se corrige (solo si ya ha comenzado) sin tocar la fecha prevista');
 
 await accion({ tipo: 'punto', equipo: 'visitante' });
 r = await accion({ tipo: 'punto', equipo: 'visitante' });

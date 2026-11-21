@@ -8,6 +8,7 @@ import {
   CONFIG_POR_DEFECTO,
   comienzoTras,
   resumir,
+  validarCambioDeFechas,
   validarProgramacion,
   editarEquipo,
   RELOJ_INICIAL,
@@ -353,4 +354,15 @@ test('un +2 que cierra el set también se muestra como punto doble', () => {
   const { vista } = jugar(nuevoPartido(), ...puntos('local', 23), { tipo: 'punto', equipo: 'local', valor: 2 }, { tipo: 'confirmar' });
   const cierre = vista.historial.at(-1)!;
   assert.deepEqual([cierre.descripcion, cierre.detalle, cierre.puntos.local], ['Punto doble para Local', 'Local gana el set 1 · cambio de lado', 25]);
+});
+
+test('el admin corrige la fecha prevista y el comienzo real', () => {
+  const empezado = { programadoEn: '2026-11-29T10:00:00.000Z', comenzadoEn: '2026-11-29T10:07:00.000Z' };
+  assert.deepEqual(
+    validarCambioDeFechas({ programadoEn: '2026-11-29T11:00:00.000Z', comenzadoEn: '2026-11-29T11:05:00.000Z' }, empezado),
+    { programadoEn: '2026-11-29T11:00:00.000Z', comenzadoEn: '2026-11-29T11:05:00.000Z' },
+  );
+  assert.deepEqual(validarCambioDeFechas({ programadoEn: '2026-11-30T09:00:00.000Z' }, empezado).comenzadoEn, empezado.comenzadoEn);
+  assert.throws(() => validarCambioDeFechas({ comenzadoEn: 'ayer' }, empezado), /comienzo no son válidas/);
+  assert.throws(() => validarCambioDeFechas({ comenzadoEn: '2026-11-29T11:05:00.000Z' }, { ...empezado, comenzadoEn: null }), /aún no ha comenzado/);
 });

@@ -104,11 +104,15 @@ function aLocal(iso: string) {
 }
 
 function editarProgramacion() {
-  const campo = el('input', { type: 'datetime-local', name: 'programadoEn', required: true });
-  campo.value = aLocal(programacion.programadoEn);
+  const previsto = el('input', { type: 'datetime-local', name: 'programadoEn', required: true });
+  previsto.value = aLocal(programacion.programadoEn);
+  // El comienzo real solo se corrige si el partido ya ha empezado.
+  const comienzo = programacion.comenzadoEn ? el('input', { type: 'datetime-local', name: 'comenzadoEn', required: true }) : null;
+  if (comienzo) comienzo.value = aLocal(programacion.comenzadoEn!);
   const formulario = el('form', { method: 'dialog', class: 'formulario' },
-    el('h2', {}, 'Fecha y hora previstas'),
-    el('label', {}, 'Cuándo está previsto el partido', campo),
+    el('h2', {}, 'Fecha y hora'),
+    el('label', {}, 'Prevista', previsto),
+    comienzo ? el('label', {}, 'Comienzo real', comienzo) : el('p', { class: 'vacio' }, 'El comienzo real se registra solo con el primer punto o al arrancar el reloj.'),
     el('div', { class: 'botones' },
       el('button', { type: 'button', class: 'boton', value: 'cancelar' }, 'Cancelar'),
       el('button', { type: 'submit', class: 'boton principal' }, 'Guardar'),
@@ -118,7 +122,11 @@ function editarProgramacion() {
   document.body.append(dialogo);
   formulario.querySelector('[value="cancelar"]')!.addEventListener('click', () => dialogo.close());
   formulario.addEventListener('submit', () => {
-    accion({ tipo: 'editar_programacion', programadoEn: new Date(campo.value).toISOString() });
+    accion({
+      tipo: 'editar_programacion',
+      programadoEn: new Date(previsto.value).toISOString(),
+      ...(comienzo && { comenzadoEn: new Date(comienzo.value).toISOString() }),
+    });
   });
   dialogo.addEventListener('close', () => dialogo.remove());
   dialogo.showModal();
@@ -267,7 +275,7 @@ async function editarEquipo(lado: Lado) {
 }
 
 /** Las acciones se envían en orden, una detrás de otra. */
-function accion(datos: { tipo: string; equipo?: Lado; valor?: number; nombre?: string; color?: string; programadoEn?: string }) {
+function accion(datos: { tipo: string; equipo?: Lado; valor?: number; nombre?: string; color?: string; programadoEn?: string; comenzadoEn?: string }) {
   cola = cola.then(async () => {
     try {
       const respuesta = await llamar<{ version: number; vista: Vista; reloj: Reloj } & Programacion>(`/${id}/acciones`, { cuerpo: datos });

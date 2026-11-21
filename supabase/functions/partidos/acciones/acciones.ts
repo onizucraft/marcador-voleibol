@@ -7,7 +7,7 @@ import {
   relojTrasCambio,
   resolverAccion,
   resumir,
-  validarProgramacion,
+  validarCambioDeFechas,
   type Cambio,
   type Equipos,
   type Reloj,
@@ -61,8 +61,8 @@ export async function ejecutarAccion(req: Request, db: PostgresApi, id: number):
     }
 
     if (tipo === 'editar_programacion') {
-      const programadoEn = validarProgramacion((accion as { programadoEn?: unknown }).programadoEn);
-      if (await guardarProgramacion(db, id, partido.version, programadoEn)) return respuesta({ programadoEn });
+      const fechas = validarCambioDeFechas(accion, partido);
+      if (await guardarFechas(db, id, partido.version, fechas)) return respuesta(fechas);
       continue;
     }
 
@@ -94,9 +94,13 @@ async function guardarReloj(
   return filas.length === 1;
 }
 
-async function guardarProgramacion(db: PostgresApi, id: number, version: number, programadoEn: string) {
+async function guardarFechas(
+  db: PostgresApi, id: number, version: number, fechas: { programadoEn: string; comenzadoEn: string | null },
+) {
   const filas = await db.query`
-    update public.partidos set programado_en = ${programadoEn}::timestamptz, version = version + 1
+    update public.partidos
+       set programado_en = ${fechas.programadoEn}::timestamptz, comenzado_en = ${fechas.comenzadoEn}::timestamptz,
+           version = version + 1
      where id = ${id} and version = ${version}
     returning id`;
   return filas.length === 1;
