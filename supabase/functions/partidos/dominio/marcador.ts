@@ -9,26 +9,30 @@ const otro = (lado: Lado): Lado => (lado === 'local' ? 'visitante' : 'local');
 export interface Color {
   id: string;
   nombre: string;
-  /** Relleno del panel del equipo. */
+  /** Color del equipo: panel, nombre, bordes. */
   hex: string;
-  /** Color de los números sobre el relleno. */
+  /** Color de los números sobre el panel. */
   texto: string;
-  /** Color del nombre del equipo sobre el fondo oscuro de la página. */
-  tinta: string;
 }
 
-// Colores de equipación bien separados entre sí (y los claros, con números oscuros).
+// Colores de equipación por parejas: el principal y su alternativa (más clara u oscura)
+// para cuando los dos equipos visten del mismo color. El orden importa: el selector
+// los muestra en columnas, el principal encima de su alternativa.
 export const COLORES: readonly Color[] = [
-  { id: 'rojo', nombre: 'Rojo', hex: '#e53935', texto: '#ffffff', tinta: '#ef5350' },
-  { id: 'naranja', nombre: 'Naranja', hex: '#f57c00', texto: '#ffffff', tinta: '#fb8c00' },
-  { id: 'amarillo', nombre: 'Amarillo', hex: '#fdd835', texto: '#1a1a1a', tinta: '#fdd835' },
-  { id: 'verde', nombre: 'Verde', hex: '#2e7d32', texto: '#ffffff', tinta: '#4caf50' },
-  { id: 'celeste', nombre: 'Celeste', hex: '#4fc3f7', texto: '#0d2233', tinta: '#4fc3f7' },
-  { id: 'azul', nombre: 'Azul', hex: '#1e4fd8', texto: '#ffffff', tinta: '#5c8dff' },
-  { id: 'morado', nombre: 'Morado', hex: '#8e24aa', texto: '#ffffff', tinta: '#ba68c8' },
-  { id: 'rosa', nombre: 'Rosa', hex: '#ec407a', texto: '#ffffff', tinta: '#f06292' },
-  { id: 'blanco', nombre: 'Blanco', hex: '#f5f5f5', texto: '#1a1a1a', tinta: '#f5f5f5' },
-  { id: 'negro', nombre: 'Negro', hex: '#111111', texto: '#ffffff', tinta: '#bdbdbd' },
+  { id: 'rojo', nombre: 'Rojo', hex: '#e53935', texto: '#ffffff' },
+  { id: 'granate', nombre: 'Granate', hex: '#a8282e', texto: '#ffffff' },
+  { id: 'naranja', nombre: 'Naranja', hex: '#f57c00', texto: '#ffffff' },
+  { id: 'naranja_claro', nombre: 'Naranja claro', hex: '#ffb74d', texto: '#1a1a1a' },
+  { id: 'amarillo', nombre: 'Amarillo', hex: '#fdd835', texto: '#1a1a1a' },
+  { id: 'mostaza', nombre: 'Mostaza', hex: '#c9a000', texto: '#1a1a1a' },
+  { id: 'verde', nombre: 'Verde', hex: '#2e8b3a', texto: '#ffffff' },
+  { id: 'verde_claro', nombre: 'Verde claro', hex: '#8bc34a', texto: '#1a1a1a' },
+  { id: 'azul', nombre: 'Azul', hex: '#2962e6', texto: '#ffffff' },
+  { id: 'celeste', nombre: 'Azul claro', hex: '#4fc3f7', texto: '#0d2233' },
+  { id: 'morado', nombre: 'Morado', hex: '#9c34c0', texto: '#ffffff' },
+  { id: 'lila', nombre: 'Lila', hex: '#ce93d8', texto: '#1a1a1a' },
+  { id: 'rosa', nombre: 'Rosa', hex: '#ec407a', texto: '#ffffff' },
+  { id: 'rosa_claro', nombre: 'Rosa claro', hex: '#f8bbd0', texto: '#1a1a1a' },
 ];
 
 export interface Config {
@@ -61,7 +65,6 @@ export interface Equipo {
   color: string;
   hex: string;
   texto: string;
-  tinta: string;
 }
 export type Equipos = Record<Lado, Equipo>;
 
@@ -124,12 +127,12 @@ function validarEquipo(datos: Entrada, base: { nombre: string; color: string } |
   const color = COLORES.find((c) => c.id === colorId);
   if (!color && 'hex' in base && colorId === base.color) return { ...(base as Equipo), nombre };
   if (!color) throw new ErrorDominio(`Color no válido: ${colorId}`);
-  return { nombre, color: color.id, hex: color.hex, texto: color.texto, tinta: color.tinta };
+  return { nombre, color: color.id, hex: color.hex, texto: color.texto };
 }
 
 function comprobarColoresDistintos(equipos: Equipos) {
   if (equipos.local.color === equipos.visitante.color) {
-    throw new ErrorDominio('Los dos equipos no pueden tener el mismo color');
+    throw new ErrorDominio('Los dos equipos no pueden tener el mismo color: elige la versión clara u oscura para uno de ellos');
   }
 }
 
@@ -288,7 +291,7 @@ export interface Vista {
 function conPaleta(equipos: Equipos): Equipos {
   const con = (e: Equipo): Equipo => {
     const c = COLORES.find((color) => color.id === e.color);
-    return c ? { ...e, hex: c.hex, texto: c.texto, tinta: c.tinta } : { ...e, texto: e.texto ?? '#ffffff', tinta: e.tinta ?? e.hex };
+    return c ? { nombre: e.nombre, color: e.color, hex: c.hex, texto: c.texto } : { nombre: e.nombre, color: e.color, hex: e.hex, texto: e.texto ?? '#ffffff' };
   };
   return { local: con(equipos.local), visitante: con(equipos.visitante) };
 }

@@ -41,7 +41,7 @@ function tarjeta(p: FilaPartido) {
     equipo('visitante', p.sets_visitante),
   );
   // Partidos terminados: borde con el color del ganador.
-  if (p.ganador) enlace.style.setProperty('--ganador', p.equipos[p.ganador].tinta ?? p.equipos[p.ganador].hex);
+  if (p.ganador) enlace.style.setProperty('--ganador', p.equipos[p.ganador].hex);
   return enlace;
 }
 

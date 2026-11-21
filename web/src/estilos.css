@@ -112,7 +112,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 .formulario .casilla { display: flex; align-items: center; gap: 0.5rem; }
 .rejilla-reglas { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.75rem; }
 
-.paleta { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.paleta { display: grid; grid-template-rows: auto auto; grid-auto-flow: column; grid-auto-columns: max-content; gap: 0.5rem; overflow-x: auto; padding: 0.25rem; }
 .paleta .color {
   width: 2.25rem; height: 2.25rem; border-radius: 50%; background: var(--color); cursor: pointer;
   display: block; outline: 3px solid transparent; outline-offset: 2px;
@@ -152,7 +152,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
   background: var(--fondo); color: var(--texto);
 }
 .marcador .nombre {
-  color: var(--color); font-size: clamp(1.25rem, 3vw, 2.25rem); font-weight: 500; text-align: center;
+  color: var(--color); text-shadow: 0 0 0.15em rgb(255 255 255 / 0.18); font-size: clamp(1.25rem, 3vw, 2.25rem); font-weight: 500; text-align: center;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
@@ -264,9 +264,9 @@ body.es-admin .panel {
   grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto;
   place-items: stretch; overflow: hidden;
 }
-body.es-admin .panel .puntos { grid-column: 1 / -1; display: grid; place-items: center; font-size: 34cqi; }
+body.es-admin .panel .puntos { grid-column: 1 / -1; display: grid; place-items: center; font-size: 30cqi; }
 body.es-admin .panel :is(.menos-uno, .mas-dos) {
-  position: static; border: none; border-radius: 0; padding: 0.45em 0;
+  position: static; border: none; border-radius: 0; padding: 0.8em 0;
   font-size: max(1.4rem, 10cqi); line-height: 1;
   background: rgb(0 0 0 / 0.2); border-top: 2px solid rgb(255 255 255 / 0.18);
 }

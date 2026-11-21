@@ -24,8 +24,8 @@ let dialogoPendiente: { clave: number; cerrar: () => void } | null = null;
 let cola: Promise<unknown> = Promise.resolve();
 
 const nombreDe = (lado: Lado) => vista!.equipos[lado].nombre;
-// Las vistas guardadas antes de existir `tinta`/`texto` no los traen: se usa el color principal.
-const tintaDe = (v: Vista, lado: Lado) => v.equipos[lado].tinta ?? v.equipos[lado].hex;
+const colorDe = (v: Vista, lado: Lado) => v.equipos[lado].hex;
+// Las vistas guardadas antes de existir `texto` no lo traen.
 const textoDe = (v: Vista, lado: Lado) => v.equipos[lado].texto ?? '#ffffff';
 const dosCifras = (n: number) => String(n).padStart(2, '0');
 const hora = new Intl.DateTimeFormat('es-ES', { timeStyle: 'medium' });
@@ -45,7 +45,7 @@ function pintar(version: number, nueva: Vista, nuevoReloj: Reloj, nuevaProgramac
     const equipo = v.equipos[lado];
     const nombre = $(`#nombre-${posicion}`);
     nombre.textContent = equipo.nombre;
-    nombre.style.setProperty('--color', tintaDe(v, lado));
+    nombre.style.setProperty('--color', colorDe(v, lado));
 
     const panel = $(`#panel-${posicion}`);
     panel.dataset.lado = lado;
@@ -144,7 +144,7 @@ function pintarParciales(v: Vista) {
   $('#parciales').replaceChildren(...v.parciales.map((p, i) => {
     const item = el('li', {}, `Set ${i + 1}: `, el('strong', {}, `${p.local}-${p.visitante}`));
     // Borde con el color del equipo que ganó el set.
-    item.style.setProperty('--color', tintaDe(v, p.ganador));
+    item.style.setProperty('--color', colorDe(v, p.ganador));
     item.title = `Lo ganó ${nombreDe(p.ganador)}`;
     return item;
   }));
@@ -158,7 +158,7 @@ function pintarHistorial(v: Vista) {
       el('span', { class: 'marcador-parcial' }, `${h.puntos.local}-${h.puntos.visitante} (${h.sets.local}-${h.sets.visitante})`),
       el('time', { datetime: h.en }, hora.format(new Date(h.en))),
     );
-    if (h.equipo) item.style.setProperty('--color', tintaDe(v, h.equipo));
+    if (h.equipo) item.style.setProperty('--color', colorDe(v, h.equipo));
     return item;
   }));
   if (v.historial.length === 0) $('#lista-historial').replaceChildren(el('li', { class: 'vacio' }, 'Todavía no hay jugadas.'));

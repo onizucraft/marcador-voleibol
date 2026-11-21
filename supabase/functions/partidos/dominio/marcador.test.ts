@@ -141,7 +141,7 @@ test('validación de un partido nuevo', () => {
   });
   assert.equal(programadoEn, '2026-11-22T09:00:00.000Z');
   assert.equal(equipos.local.nombre, 'Galapagar A');
-  assert.equal(equipos.local.hex, '#2e7d32');
+  assert.equal(equipos.local.hex, '#2e8b3a');
   assert.equal(config.setsParaGanar, 2);
   assert.equal(config.puntosUltimoSet, 15);
   assert.throws(() => validarNuevoPartido({ programadoEn: AHORA, equipos: { local: { color: 'azul' } } }), /mismo color/);
@@ -186,7 +186,7 @@ test('al confirmar el final del partido el reloj se para solo', () => {
 test('editar un equipo a mitad de partido conserva el marcador y actualiza el historial', () => {
   const { partido } = jugar(nuevoPartido(), ...puntos('local', 3), { tipo: 'deshacer' });
   const { equipos, vista } = editarEquipo(partido, { equipo: 'local', nombre: ' Galapagar A ', color: 'verde' });
-  assert.deepEqual(equipos.local, { nombre: 'Galapagar A', color: 'verde', hex: '#2e7d32', texto: '#ffffff', tinta: '#4caf50' });
+  assert.deepEqual(equipos.local, { nombre: 'Galapagar A', color: 'verde', hex: '#2e8b3a', texto: '#ffffff' });
   assert.deepEqual(equipos.visitante, partido.equipos.visitante);
   assert.equal(vista.puntos.local, 2);
   assert.equal(vista.puedeRehacer, true);
@@ -248,7 +248,7 @@ test('la vista usa la paleta actual y respeta colores antiguos', () => {
   const { vista } = jugar(partido, { tipo: 'punto', equipo: 'local' });
   assert.equal(vista.equipos.local.hex, '#3f51b5');
   assert.equal(vista.equipos.local.texto, '#ffffff');
-  assert.equal(vista.equipos.visitante.tinta, '#5c8dff');
+  assert.equal(vista.equipos.visitante.hex, '#2962e6');
   assert.equal(editarEquipo(partido, { equipo: 'local', nombre: 'Nuevo' }).equipos.local.color, 'indigo');
 });
 
@@ -280,4 +280,10 @@ test('el cierre de un set se atribuye al ganador en el historial', () => {
   const { vista } = jugar(nuevoPartido(), ...puntos('visitante', 25), { tipo: 'confirmar' }, { tipo: 'cambio_lado' });
   assert.equal(vista.historial.at(-2)!.equipo, 'visitante');
   assert.equal(vista.historial.at(-1)!.equipo, null);
+});
+
+test('cada color tiene su alternativa: azul y azul claro pueden enfrentarse', () => {
+  const { equipos } = validarNuevoPartido({ programadoEn: AHORA, equipos: { local: { color: 'azul' }, visitante: { color: 'celeste' } } });
+  assert.deepEqual([equipos.local.color, equipos.visitante.color], ['azul', 'celeste']);
+  assert.throws(() => validarNuevoPartido({ programadoEn: AHORA, equipos: { local: { color: 'blanco' } } }), /Color no válido/);
 });
