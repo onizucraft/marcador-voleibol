@@ -24,8 +24,14 @@ export function $<T extends HTMLElement = HTMLElement>(selector: string): T {
 }
 
 export function avisarError(mensaje: string) {
+  avisar(mensaje, 'error');
+}
+
+/** Aviso breve en la parte inferior de la pantalla. */
+export function avisar(mensaje: string, tipo: 'error' | 'info' = 'info') {
   const aviso = document.querySelector<HTMLElement>('#aviso-error') ?? document.body.appendChild(el('div', { id: 'aviso-error', role: 'alert' }));
   aviso.textContent = mensaje;
+  aviso.classList.toggle('info', tipo === 'info');
   aviso.classList.add('visible');
   clearTimeout(Number(aviso.dataset.temporizador));
   aviso.dataset.temporizador = String(setTimeout(() => aviso.classList.remove('visible'), 4000));

@@ -75,6 +75,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
   max-width: calc(100vw - 2rem); transition: transform 0.2s; z-index: 10;
 }
 #aviso-error.visible { transform: translate(-50%, 0); }
+#aviso-error.info { background: #37474f; }
 
 .dialogo {
   border: none; border-radius: var(--radio); padding: 1.5rem; max-width: 26rem;
@@ -134,6 +135,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
   grid-template-areas:
     'nombre-izq reloj nombre-der'
     'panel-izq  centro panel-der'
+    'ultimo     ultimo  ultimo'
     'resumen    resumen resumen'
     'estado     estado estado'
     'parciales  parciales parciales';
@@ -147,6 +149,23 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 .estado.coloreado { background: var(--color); color: var(--texto, #fff); font-weight: 600; }
 .estado { grid-area: estado; }
 .resumen { grid-area: resumen; }
+.ultimo-evento { grid-area: ultimo; }
+
+/* Última jugada: franja con el color del equipo; se ilumina al llegar una nueva. */
+.ultimo-evento {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.55rem 1rem; border-radius: var(--radio); background: var(--superficie);
+  font-size: clamp(1rem, 1.8vw, 1.3rem); font-weight: 600;
+}
+.ultimo-evento.de-equipo { background: var(--color); color: var(--texto, #fff); }
+.ultimo-evento .detalle { font-weight: 500; }
+.ultimo-evento .marcador-parcial { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ultimo-evento.nuevo { animation: destello 1.2s ease-out; }
+@keyframes destello {
+  0% { box-shadow: 0 0 0 0 rgb(255 255 255 / 0.85); transform: scale(1.02); }
+  100% { box-shadow: 0 0 0 14px rgb(255 255 255 / 0); transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .ultimo-evento.nuevo { animation: none; } }
 .parciales { grid-area: parciales; }
 
 .cabecera-equipo { display: flex; min-width: 0; align-self: stretch; }
@@ -263,6 +282,7 @@ body:not(.es-admin) .controles { grid-template-columns: repeat(2, auto); }
       'reloj      reloj'
       'nombre-izq nombre-der'
       'panel-izq  panel-der'
+      'ultimo     ultimo'
       'centro     centro'
       'resumen    resumen'
       'estado     estado'
@@ -302,10 +322,11 @@ body.presentacion :is(.cabecera, .controles, .resumen, .estado, .parciales, .his
 body.presentacion .marcador {
   max-width: none; height: 100dvh; padding: 2vh 2vw; gap: 2vh 2vw; align-items: stretch;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas:
     'nombre-izq reloj  nombre-der'
-    'panel-izq  centro panel-der';
+    'panel-izq  centro panel-der'
+    'ultimo     ultimo ultimo';
 }
 body.presentacion .panel { aspect-ratio: auto; container-type: size; }
 body.presentacion .panel .puntos { font-size: min(62cqh, 40cqw); }
@@ -319,11 +340,12 @@ body.presentacion .caja-set { width: clamp(4rem, 14vh, 10rem); font-size: clamp(
 @media (orientation: portrait) {
   body.presentacion .marcador {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
     grid-template-areas:
       'reloj      reloj'
       'nombre-izq nombre-der'
       'panel-izq  panel-der'
+      'ultimo     ultimo'
       'centro     centro';
   }
   body.presentacion .panel .puntos { font-size: min(45cqh, 40cqw); }
@@ -332,3 +354,5 @@ body.presentacion .caja-set { width: clamp(4rem, 14vh, 10rem); font-size: clamp(
 }
 
 body.es-admin:not(.presentacion) .marcador .nombre { cursor: pointer; }
+
+body.presentacion .ultimo-evento { font-size: clamp(1rem, 3.6vh, 2.4rem); padding: 0.4em 0.8em; }

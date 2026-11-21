@@ -1,4 +1,4 @@
-import { $, avisarError, el, preguntar } from './dom.ts';
+import { $, avisar, avisarError, el, preguntar } from './dom.ts';
 import { ahoraServidor, mantenerHoraSincronizada } from './hora.ts';
 import { cargarOpciones, crearPaleta } from './paleta.ts';
 import { pintarSesion } from './sesion.ts';
@@ -83,12 +83,39 @@ function pintar(version: number, nueva: Vista, nuevoReloj: Reloj, nuevaProgramac
   $<HTMLAnchorElement>('#nuevo').href = `nuevo.html?desde=${id}`;
 
   pintarProgramacion();
+  pintarUltimoEvento(v);
   pintarEstado(v);
   pintarParciales(v);
   pintarHistorial(v);
   pintarReloj();
   avisarFinDeSet(v);
   $('.marcador').hidden = false;
+}
+
+let jugadasMostradas = -1;
+
+/** La última jugada, para todo el mundo y también en pantalla completa. */
+function pintarUltimoEvento(v: Vista) {
+  const caja = $('#ultimo-evento');
+  const h = v.historial.at(-1);
+  caja.hidden = !h;
+  if (!h) return void (jugadasMostradas = 0);
+  caja.replaceChildren(
+    el('span', { class: 'que' }, h.descripcion, h.detalle && el('span', { class: 'detalle' }, ` · ${h.detalle}`)),
+    el('span', { class: 'marcador-parcial' }, `${h.puntos.local}-${h.puntos.visitante}`),
+  );
+  caja.classList.toggle('de-equipo', Boolean(h.equipo));
+  if (h.equipo) {
+    caja.style.setProperty('--color', colorDe(v, h.equipo));
+    caja.style.setProperty('--texto', textoDe(v, h.equipo));
+  }
+  // Se ilumina solo si hay una jugada nueva (no al deshacer ni al corregir con −1).
+  if (jugadasMostradas >= 0 && v.historial.length > jugadasMostradas) {
+    caja.classList.remove('nuevo');
+    void caja.offsetWidth;
+    caja.classList.add('nuevo');
+  }
+  jugadasMostradas = v.historial.length;
 }
 
 function pintarProgramacion() {
@@ -280,6 +307,8 @@ function accion(datos: { tipo: string; equipo?: Lado; valor?: number; nombre?: s
     try {
       const respuesta = await llamar<{ version: number; vista: Vista; reloj: Reloj } & Programacion>(`/${id}/acciones`, { cuerpo: datos });
       pintar(respuesta.version, respuesta.vista, respuesta.reloj, respuesta);
+      // La corrección no deja rastro en el historial: al admin se le confirma aparte.
+      if (datos.tipo === 'quitar_punto') avisar('Punto corregido');
     } catch (error) {
       if (error instanceof ErrorSesion) {
         location.href = `login.html?volver=${encodeURIComponent(`partido.html?id=${id}`)}`;
@@ -379,6 +408,7 @@ function conectarControles() {
     historial.hidden = !historial.hidden;
     if (!historial.hidden) historial.scrollIntoView({ behavior: 'smooth' });
   });
+  $('#ultimo-evento').addEventListener('animationend', (e) => (e.currentTarget as HTMLElement).classList.remove('nuevo'));
   $('#editar-programacion').addEventListener('click', editarProgramacion);
   $('#pantalla-completa').addEventListener('click', () => alternarPresentacion(true));
   // Salir: Esc, el gesto de salir de pantalla completa del navegador o doble toque en el reloj.
