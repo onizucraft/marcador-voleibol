@@ -240,7 +240,8 @@ body:not(.es-admin) .controles { grid-template-columns: repeat(2, auto); }
 .historial li.vacio { display: block; border: none; }
 .historial li.de-equipo { background: var(--color); color: var(--texto, #fff); }
 .historial li.de-equipo time { color: inherit; }
-.historial li.cierre { font-weight: 700; box-shadow: inset 0 0 0 3px var(--texto, #fff); }
+.historial li.cierre { font-weight: 700; }
+.historial .detalle { display: block; }
 .historial time { color: var(--texto-suave); font-size: 0.85rem; }
 /* Separador entre sets: título con línea y aire por encima (salvo el primero). */
 .historial li.separador-set {

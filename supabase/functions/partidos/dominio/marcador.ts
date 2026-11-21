@@ -239,7 +239,8 @@ function aplicar(estado: Estado, evento: Evento, config: Config): Estado {
 function describir(evento: Evento, anterior: Estado, equipos: Equipos): string {
   switch (evento.tipo) {
     case 'punto':
-      return `Punto para ${equipos[evento.equipo!].nombre}${evento.valor === 2 ? ' (+2)' : ''}`;
+      // Un +2 es un único punto doble, no dos puntos.
+      return `${evento.valor === 2 ? 'Punto doble' : 'Punto'} para ${equipos[evento.equipo!].nombre}`;
     case 'confirmar': {
       const { tipo, ganador } = anterior.pendiente!;
       const resultado = `${anterior.puntos.local}-${anterior.puntos.visitante}`;
@@ -260,6 +261,8 @@ export interface EntradaHistorial {
   equipo: Lado | null;
   /** El punto que cerró un set o el partido (ya confirmado): se muestra destacado. */
   cierre: 'set' | 'partido' | null;
+  /** Texto del cierre ("X gana el set 2 · cambio de lado"), en su propia línea. */
+  detalle: string | null;
   set: number;
   puntos: Record<Lado, number>;
   sets: Record<Lado, number>;
@@ -314,9 +317,9 @@ function construirVista(config: Config, guardados: Equipos, aplicados: Evento[],
       const { tipo, ganador } = anterior.pendiente!;
       punto.cierre = tipo;
       punto.sets = { ...estado.sets };
-      punto.descripcion += tipo === 'partido'
-        ? ` · ${equipos[ganador].nombre} gana el partido ${estado.sets.local}-${estado.sets.visitante}`
-        : ` · ${equipos[ganador].nombre} gana el set ${numeroDeSet(anterior.sets)} · cambio de lado`;
+      punto.detalle = tipo === 'partido'
+        ? `${equipos[ganador].nombre} gana el partido ${estado.sets.local}-${estado.sets.visitante}`
+        : `${equipos[ganador].nombre} gana el set ${numeroDeSet(anterior.sets)} · cambio de lado`;
       continue;
     }
     historial.push({
@@ -324,6 +327,7 @@ function construirVista(config: Config, guardados: Equipos, aplicados: Evento[],
       tipo: evento.tipo,
       equipo: evento.equipo ?? (evento.tipo === 'confirmar' ? anterior.pendiente!.ganador : null),
       cierre: null,
+      detalle: null,
       set: numeroDeSet(anterior.sets),
       puntos: { ...estado.puntos },
       sets: { ...estado.sets },

@@ -45,7 +45,7 @@ const puntos = (equipo: string, n: number) => Array.from({ length: n }, () => ({
 test('al hacer click suma un punto y la opción +2 suma dos', () => {
   const { vista } = jugar(nuevoPartido(), { tipo: 'punto', equipo: 'local' }, { tipo: 'punto', equipo: 'visitante', valor: 2 });
   assert.deepEqual(vista.puntos, { local: 1, visitante: 2 });
-  assert.equal(vista.historial[1].descripcion, 'Punto para Visitante (+2)');
+  assert.equal(vista.historial[1].descripcion, 'Punto doble para Visitante');
 });
 
 test('el set no se cierra solo: queda pendiente de confirmar y bloquea más puntos', () => {
@@ -284,7 +284,8 @@ test('el último punto y el fin de set son una sola línea del historial', () =>
   assert.equal(vista.historial.length, 29);
   const cierre = vista.historial.at(-2)!;
   assert.deepEqual([cierre.tipo, cierre.equipo, cierre.cierre], ['punto', 'visitante', 'set']);
-  assert.equal(cierre.descripcion, 'Punto para Visitante · Visitante gana el set 1 · cambio de lado');
+  assert.equal(cierre.descripcion, 'Punto para Visitante');
+  assert.equal(cierre.detalle, 'Visitante gana el set 1 · cambio de lado');
   assert.deepEqual([cierre.puntos, cierre.sets], [{ local: 3, visitante: 25 }, { local: 0, visitante: 1 }]);
   assert.equal(vista.historial.at(-1)!.descripcion, 'Cambio de lado');
 });
@@ -293,13 +294,15 @@ test('el último punto del partido lleva el fin del partido', () => {
   const { vista } = jugar(nuevoPartido({ setsParaGanar: 1, puntosPorSet: 2 }), ...puntos('local', 2), { tipo: 'confirmar' });
   assert.equal(vista.historial.length, 2);
   assert.equal(vista.historial.at(-1)!.cierre, 'partido');
-  assert.equal(vista.historial.at(-1)!.descripcion, 'Punto para Local · Local gana el partido 1-0');
+  assert.equal(vista.historial.at(-1)!.descripcion, 'Punto para Local');
+  assert.equal(vista.historial.at(-1)!.detalle, 'Local gana el partido 1-0');
 });
 
 test('deshacer la confirmación separa de nuevo el punto del cierre', () => {
   const { vista } = jugar(nuevoPartido(), ...puntos('local', 25), { tipo: 'confirmar' }, { tipo: 'deshacer' });
   assert.equal(vista.historial.at(-1)!.cierre, null);
   assert.equal(vista.historial.at(-1)!.descripcion, 'Punto para Local');
+  assert.equal(vista.historial.at(-1)!.detalle, null);
 });
 
 test('cada color tiene su alternativa: azul y azul marino pueden enfrentarse', () => {
@@ -337,5 +340,17 @@ test('el resultado del partido se lee siempre local-visitante', () => {
     ...puntos('visitante', 2), { tipo: 'confirmar' },
   );
   assert.equal(vista.ganador, 'visitante');
-  assert.equal(vista.historial.at(-1)!.descripcion, 'Punto para Visitante · Visitante gana el partido 1-2');
+  assert.equal(vista.historial.at(-1)!.detalle, 'Visitante gana el partido 1-2');
+});
+
+test('un +2 es un único punto doble en el historial, no dos puntos', () => {
+  const { vista } = jugar(nuevoPartido(), { tipo: 'punto', equipo: 'local' }, { tipo: 'punto', equipo: 'local', valor: 2 });
+  assert.equal(vista.historial.length, 2);
+  assert.deepEqual(vista.historial.map((h) => [h.descripcion, h.puntos.local]), [['Punto para Local', 1], ['Punto doble para Local', 3]]);
+});
+
+test('un +2 que cierra el set también se muestra como punto doble', () => {
+  const { vista } = jugar(nuevoPartido(), ...puntos('local', 23), { tipo: 'punto', equipo: 'local', valor: 2 }, { tipo: 'confirmar' });
+  const cierre = vista.historial.at(-1)!;
+  assert.deepEqual([cierre.descripcion, cierre.detalle, cierre.puntos.local], ['Punto doble para Local', 'Local gana el set 1 · cambio de lado', 25]);
 });

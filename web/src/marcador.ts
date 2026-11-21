@@ -180,7 +180,7 @@ function pintarHistorial(v: Vista) {
       ));
     }
     const item = el('li', {},
-      el('span', { class: 'descripcion' }, h.descripcion),
+      el('span', { class: 'descripcion' }, h.descripcion, h.detalle && el('span', { class: 'detalle' }, h.detalle)),
       el('span', { class: 'marcador-parcial' }, `${h.puntos.local}-${h.puntos.visitante} (${h.sets.local}-${h.sets.visitante})`),
       el('time', { datetime: h.en }, hora.format(new Date(h.en))),
     );
