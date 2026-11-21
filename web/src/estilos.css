@@ -61,6 +61,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 }
 .boton.principal { background: var(--acento); border-color: var(--acento); color: var(--sobre-acento); font-weight: 700; }
 .boton:disabled { opacity: 0.5; cursor: default; }
+.boton-nuevo { width: 2.6rem; height: 2.6rem; padding: 0; font-size: 1.6rem; line-height: 1; }
 .enlace { background: none; border: none; color: var(--texto-suave); padding: 0.25rem; }
 .enlace:hover { color: var(--texto); }
 
