@@ -20,6 +20,7 @@ const ETIQUETAS = { programado: 'Previsto', en_juego: 'En juego', finalizado: 'F
 /** Fecha de referencia de un partido: cuando empezó o, si aún no, cuando está previsto. */
 const fechaDe = (p: FilaPartido) => p.comenzado_en ?? p.programado_en;
 const masRecientePrimero = (a: FilaPartido, b: FilaPartido) => Date.parse(fechaDe(b)) - Date.parse(fechaDe(a));
+const masCercanoPrimero = (a: FilaPartido, b: FilaPartido) => Date.parse(a.programado_en) - Date.parse(b.programado_en);
 
 function tarjeta(p: FilaPartido) {
   const equipo = (lado: Lado, sets: number) => {
@@ -53,10 +54,13 @@ async function cargar() {
     .limit(200);
   if (error) return avisarError('No se han podido cargar los partidos');
   const partidos = data as FilaPartido[];
-  // En juego incluye los aún no empezados (etiqueta "Previsto").
-  const enJuego = partidos.filter((p) => p.estado !== 'finalizado').sort(masRecientePrimero);
+  const enJuego = partidos.filter((p) => p.estado === 'en_juego').sort(masRecientePrimero);
+  const proximos = partidos.filter((p) => p.estado === 'programado').sort(masCercanoPrimero);
   const anteriores = partidos.filter((p) => p.estado === 'finalizado').sort(masRecientePrimero);
   pintarLista($('#en-juego'), enJuego, 'No hay ningún partido en juego.');
+  // "Próximos" solo aparece si hay alguno.
+  $('#seccion-proximos').hidden = proximos.length === 0;
+  pintarLista($('#proximos'), proximos, '');
   pintarLista($('#anteriores'), anteriores, 'Todavía no hay partidos terminados.');
 }
 
