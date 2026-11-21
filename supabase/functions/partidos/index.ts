@@ -5,6 +5,7 @@
 //   POST /partidos                   admin     crear partido
 //   POST /partidos/:id/acciones      admin     punto, +2, confirmar, cambio de lado, restablecer, deshacer, rehacer,
 //                                              reloj (iniciar/pausar) y editar equipo
+//   POST /partidos/:id/eliminar      admin     borra el partido y su historial
 //   POST /partidos/recalcular        servicio  recalcula la vista guardada de todos los partidos
 //
 // Las lecturas del público no pasan por aquí: leen `partidos.vista` vía PostgREST/Realtime.
@@ -16,6 +17,7 @@ import { withSupabase } from '@supabase/server';
 import { withPostgresAdminClient, type PostgresApi } from '@supabase/server/middleware/postgres-admin';
 import { ejecutarAccion } from './acciones/acciones.ts';
 import { crearPartido } from './crear/crear.ts';
+import { eliminarPartido } from './eliminar/eliminar.ts';
 import { verHora } from './hora/hora.ts';
 import { recalcularTodo } from './mantenimiento/recalcular.ts';
 import { ErrorHttp, respuestaDeError } from './http.ts';
@@ -97,6 +99,7 @@ const RUTAS: Ruta[] = [
   soloAdmin('POST', /^\/?$/, (req, db) => crearPartido(req, db)),
   soloServicio('POST', /^\/recalcular$/, recalcularTodo),
   soloAdmin('POST', /^\/(?<id>\d+)\/acciones$/, (req, db, { id }) => ejecutarAccion(req, db, Number(id))),
+  soloAdmin('POST', /^\/(?<id>\d+)\/eliminar$/, (_req, db, { id }) => eliminarPartido(db, Number(id))),
 ];
 
 export default {

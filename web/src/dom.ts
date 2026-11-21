@@ -35,11 +35,11 @@ export function avisarError(mensaje: string) {
 export function preguntar(
   titulo: string,
   texto: string,
-  opciones: { texto: string; valor: string; principal?: boolean }[],
+  opciones: { texto: string; valor: string; principal?: boolean; peligro?: boolean }[],
 ): { respuesta: Promise<string | null>; cerrar: () => void } {
   const dialogo = el('dialog', { class: 'dialogo' });
   const botones = opciones.map((o) =>
-    el('button', { type: 'button', class: o.principal ? 'boton principal' : 'boton', value: o.valor }, o.texto),
+    el('button', { type: 'button', class: o.peligro ? 'boton peligro' : o.principal ? 'boton principal' : 'boton', value: o.valor }, o.texto),
   );
   dialogo.append(el('h2', {}, titulo), el('p', {}, texto), el('div', { class: 'botones' }, ...botones));
   document.body.append(dialogo);
@@ -51,6 +51,7 @@ export function preguntar(
     });
   });
   dialogo.showModal();
-  botones.find((b) => b.classList.contains('principal'))?.focus();
+  // En acciones peligrosas el foco queda en la opción segura.
+  (opciones.some((o) => o.peligro) ? botones.find((_, i) => !opciones[i].peligro) : botones.find((b) => b.classList.contains('principal')))?.focus();
   return { respuesta, cerrar: () => dialogo.open && dialogo.close() };
 }

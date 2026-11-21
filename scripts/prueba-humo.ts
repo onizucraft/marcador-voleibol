@@ -185,4 +185,15 @@ const noExiste = await invocar(admin, '/999999999/acciones', { tipo: 'deshacer' 
 assert.equal(noExiste.estado, 404);
 paso('partido inexistente → 404');
 
+const desechable = await invocar(admin, '', { programadoEn: '2026-12-01T10:00:00.000Z' });
+const idDesechable = desechable.cuerpo.id as number;
+await invocar(admin, `/${idDesechable}/acciones`, { tipo: 'punto', equipo: 'local' });
+assert.equal((await invocar(publico, `/${idDesechable}/eliminar`)).estado, 401);
+const eliminado = await invocar(admin, `/${idDesechable}/eliminar`);
+assert.equal(eliminado.estado, 200);
+const { data: yaNoEsta } = await publico.from('partidos').select('id').eq('id', idDesechable);
+assert.equal(yaNoEsta!.length, 0);
+assert.equal((await invocar(admin, `/${idDesechable}/eliminar`)).estado, 404);
+paso('eliminar partido: solo admin, borra partido y eventos, 404 si ya no existe');
+
 console.log('\nTodo correcto.');

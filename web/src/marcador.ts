@@ -348,6 +348,24 @@ function conectarControles() {
   $('#boton-reloj').addEventListener('click', () => {
     accion({ tipo: reloj.iniciadoEn ? 'pausar_reloj' : 'iniciar_reloj' });
   });
+  $('#eliminar').addEventListener('click', async () => {
+    const { respuesta } = preguntar(
+      'Eliminar partido',
+      `Se borrará el partido ${vista ? `${nombreDe('local')} - ${nombreDe('visitante')}` : ''} con todo su historial. No se puede deshacer.`,
+      [
+        { texto: 'Cancelar', valor: '' },
+        { texto: 'Eliminar', valor: 'eliminar', peligro: true },
+      ],
+    );
+    if (!(await respuesta)) return;
+    try {
+      await llamar(`/${id}/eliminar`);
+      location.href = './';
+    } catch (error) {
+      if (error instanceof ErrorSesion) location.href = `login.html?volver=${encodeURIComponent(`partido.html?id=${id}`)}`;
+      else avisarError((error as Error).message);
+    }
+  });
   $('#ver-historial').addEventListener('click', () => {
     const historial = $('#historial');
     historial.hidden = !historial.hidden;
@@ -384,6 +402,10 @@ async function iniciar() {
       if (fila.version !== undefined && fila.vista && fila.reloj && fila.programado_en) {
         pintar(fila.version, fila.vista, fila.reloj, { programadoEn: fila.programado_en, comenzadoEn: fila.comenzado_en ?? null });
       } else cargar();
+    })
+    // Si lo eliminan mientras se está viendo. (Los DELETE de Realtime no admiten filtro.)
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'partidos' }, (cambio) => {
+      if (Number((cambio.old as { id?: number }).id) === id) cargar();
     })
     .subscribe((estado) => {
       if (estado === 'SUBSCRIBED') cargar();
