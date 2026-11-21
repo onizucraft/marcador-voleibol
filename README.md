@@ -1,6 +1,6 @@
-# 🏐 Marcador de voleibol
+# Marcador Ancora
 
-Marcador web público para partidos de voleibol. Cualquiera puede seguir los partidos en
+Marcador web público para los partidos de voleibol del Ancora Galapagar. Cualquiera puede seguir los partidos en
 directo; solo el administrador puede crearlos y llevar el marcador.
 
 - Sumar un punto con un toque en el panel del equipo, o **+2** (tres toques tras recibir).

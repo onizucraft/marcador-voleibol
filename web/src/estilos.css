@@ -12,7 +12,10 @@
   --superficie-2: #333;
   --texto: #f2f2f2;
   --texto-suave: #a8a8a8;
-  --acento: #e91e63;
+  /* Colores del escudo del Ancora Galapagar. */
+  --marino: #00234b;
+  --acento: #fdc602;
+  --sobre-acento: #00234b;
   --radio: 1rem;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   background: var(--fondo);
@@ -30,10 +33,15 @@ body:not(.es-admin) .solo-admin { display: none !important; }
 
 .cabecera {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  padding: 0.75rem 1.25rem; background: var(--superficie);
+  padding: 0.6rem 1.25rem; background: var(--marino);
 }
 .cabecera h1 { font-size: 1.25rem; }
-.cabecera h1 a { text-decoration: none; }
+.marca { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; }
+.marca img { height: 2.75rem; width: auto; }
+.cabecera:not(.compacta) .enlace { color: #c9d3e3; }
+.volver { display: flex; align-items: center; gap: 0.5rem; }
+.volver img { height: 1.9rem; width: auto; }
+.logo-grande { display: block; width: min(18rem, 70%); height: auto; margin: 0 auto 0.5rem; }
 .cabecera nav { display: flex; align-items: center; gap: 1rem; }
 .cabecera.compacta { padding: 0.5rem 1rem; background: transparent; }
 .cabecera .info { color: var(--texto-suave); font-size: 0.9rem; text-align: center; }
@@ -49,7 +57,7 @@ body:not(.es-admin) .solo-admin { display: none !important; }
   display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
   padding: 0.6rem 1.1rem; border: 1px solid #555; background: var(--superficie-2); color: var(--texto);
 }
-.boton.principal { background: var(--acento); border-color: var(--acento); color: #fff; font-weight: 600; }
+.boton.principal { background: var(--acento); border-color: var(--acento); color: var(--sobre-acento); font-weight: 700; }
 .boton:disabled { opacity: 0.5; cursor: default; }
 .enlace { background: none; border: none; color: var(--texto-suave); padding: 0.25rem; }
 .enlace:hover { color: var(--texto); }

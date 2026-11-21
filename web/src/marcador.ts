@@ -50,7 +50,7 @@ function pintar(nueva: Vista, nuevoReloj: Reloj) {
     `gana quien llegue a ${config.setsParaGanar} ${config.setsParaGanar === 1 ? 'set' : 'sets'}`,
     v.finalizado ? 'Partido terminado' : `Set ${v.setActual}${v.setDecisivo ? ' (desempate)' : ''} a ${v.objetivo} puntos`,
   ].join(' · ');
-  document.title = `${v.equipos.local.nombre} ${v.sets.local}-${v.sets.visitante} ${v.equipos.visitante.nombre} · Marcador`;
+  document.title = `${v.equipos.local.nombre} ${v.sets.local}-${v.sets.visitante} ${v.equipos.visitante.nombre} · Marcador Ancora`;
 
   $<HTMLButtonElement>('[data-accion="deshacer"]').disabled = !v.puedeDeshacer;
   $<HTMLButtonElement>('[data-accion="rehacer"]').disabled = !v.puedeRehacer;
